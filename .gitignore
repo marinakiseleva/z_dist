@@ -1,0 +1,6 @@
+.DS_Store
+*.png
+*.pdf
+data/*
+*.pk
+*.npy
