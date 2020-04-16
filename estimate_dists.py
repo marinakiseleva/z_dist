@@ -264,7 +264,7 @@ def plot_redshift_compare(data, labels, cname):
     plt.legend(fontsize=10)
     plt.xlabel("Redshift", fontsize=10)
     cname = cname.replace("/", "_")
-    plt.savefig("figures/" + cname + "_redshift_overlap.png")
+    plt.savefig("figures/" + cname + "_redshift_overlap.pdf")
     plt.show()
 
 
