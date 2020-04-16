@@ -101,15 +101,16 @@ def filter_lsst_data(feature_name, min_feature, max_feature, data):
     return class_data_filt
 
 
-def get_best_range(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
+def get_best_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
+    """
+    Find min and max range for feature that gets LSST and THEx redshift distributions for this class as close together, as measured by RMSE.
+    """
 
     ranges = []
     for min_range in min_vals:
         for max_range in max_vals:
             if min_range < max_range:
                 ranges.append([min_range, max_range])
-
-    lsst_class_data = lsst_data[class_name]
 
     print("Running " + str(CPU_COUNT) + " processes.")
     pool = multiprocessing.Pool(CPU_COUNT)
@@ -159,6 +160,10 @@ def get_hists(thex_data, lsst_data_filt):
 
 
 def get_fit(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, test_range):
+    """
+    Estimate RMSE for min and max range for feature and class between LSST and THEx redshift distribution
+    """
+
     print("Testing range " + str(test_range))
     min_range = test_range[0]
     max_range = test_range[1]
@@ -258,18 +263,19 @@ def plot_redshift_compare(data, labels, cname):
     ax.set_xlim(min_val, max_val)
     plt.legend(fontsize=10)
     plt.xlabel("Redshift", fontsize=10)
+    cname = cname.replace("/", "_")
     plt.savefig("figures/" + cname + "_redshift_overlap.png")
     plt.show()
 
 
-def plot_fit(lsst_orig, lsst_AF, lsst_GW2, lsst_AF_ranges, lsst_GW2_ranges, thex_data_AF, thex_data_gW2, class_name, lsst_feature_name):
+def plot_fit(lsst_class_data, lsst_AF, lsst_GW2, lsst_AF_ranges, lsst_GW2_ranges, thex_data_AF, thex_data_gW2, class_name, lsst_feature_name):
 
     thex_Z_AF_label = "THEx all-features " + class_name
     thex_Z_gw2_label = "THEx g-W2 " + class_name
     thex_Z_AF = get_thex_class_redshifts(class_name, thex_data_AF)
     thex_Z_gw2 = get_thex_class_redshifts(class_name, thex_data_gW2)
 
-    lsst_data_orig = lsst_orig[class_name]["true_z"]
+    lsst_data_orig = lsst_class_data["true_z"]
     lsst_data_orig = lsst_data_orig[~np.isnan(lsst_data_orig)]
     lsst_orig_label = "LSST " + class_name
 
@@ -321,35 +327,37 @@ def main(argv):
 
     # lc_prop.keys()
     # Only features to choose from are g, r, i, z, y
-
-    class_name = argv[1]  # 'Ia'
-    feature = argv[2]  # 'r_mag'
+    thex_class_name = argv[1]  # 'Ib/c'
+    lsst_class_name = argv[2]  # 'Ibc'
+    feature = argv[3]  # 'r_mag'
 
     feature_name = feature + '_mag'
     lsst_feature_name = feature + '_first_mag'
-    min_vals = np.linspace(8, 12, 40)
-    max_vals = np.linspace(14, 20, 40)
+    num_samples = 40
+    min_vals = np.linspace(8, 12, num_samples)
+    max_vals = np.linspace(14, 20, num_samples)
+
+    lsst_class_data = lc_prop[lsst_class_name]
 
     # All Features best params
     print("\nEstimating for all-features dataset")
-    best_min_AF, best_max_AF = get_best_range(lc_prop,
+    best_min_AF, best_max_AF = get_best_range(lsst_class_data,
                                               df_all_features,
-                                              class_name,
+                                              thex_class_name,
                                               feature_name,
                                               lsst_feature_name,
                                               min_vals,
                                               max_vals)
     # g-W2 dataset best params
     print("\nEstimating for g-W2-dataset")
-    best_min_GW2, best_max_GW2 = get_best_range(lc_prop,
+    best_min_GW2, best_max_GW2 = get_best_range(lsst_class_data,
                                                 df_g_W2,
-                                                class_name,
+                                                thex_class_name,
                                                 feature_name,
                                                 lsst_feature_name,
                                                 min_vals,
                                                 max_vals)
 
-    lsst_class_data = lc_prop[class_name]
     lsst_data_AF = filter_lsst_data(feature_name=lsst_feature_name,
                                     min_feature=best_min_AF,
                                     max_feature=best_max_AF,
@@ -363,14 +371,14 @@ def main(argv):
     lsst_AF_ranges = [best_min_AF, best_max_AF]
     lsst_GW2_ranges = [best_min_GW2, best_max_GW2]
 
-    plot_fit(lc_prop,
+    plot_fit(lsst_class_data,
              lsst_data_AF,
              lsst_data_gw2,
              lsst_AF_ranges,
              lsst_GW2_ranges,
              df_all_features,
              df_g_W2,
-             class_name,
+             thex_class_name,
              lsst_feature_name)
 
     # chisq, p = chisquare(f_obs=thex_hist, f_exp=lsst_hist)
