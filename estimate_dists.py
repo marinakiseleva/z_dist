@@ -215,14 +215,15 @@ def plot_redshift_compare(data, labels, cname):
             linewidth=large_lw,
             density=True,
             label=labels[2])
-    ax.hist(data[3],
-            color=LIGHT_BLUE,
-            range=(min_val, max_val),
-            bins=num_bins,
-            histtype='step',
-            linewidth=large_lw,
-            density=True,
-            label=labels[3])
+    if len(data[0]) < 0:
+        ax.hist(data[3],
+                color=LIGHT_BLUE,
+                range=(min_val, max_val),
+                bins=num_bins,
+                histtype='step',
+                linewidth=large_lw,
+                density=True,
+                label=labels[3])
     ax.hist(data[4],
             color=LIGHT_ORANGE,
             range=(min_val, max_val),
@@ -233,14 +234,15 @@ def plot_redshift_compare(data, labels, cname):
             label=labels[4])
 
     # THEx data
-    ax.hist(data[0],
-            color=DARK_BLUE,
-            range=(min_val, max_val),
-            bins=num_bins,
-            histtype='step',
-            linewidth=small_lw,
-            density=True,
-            label=labels[0])
+    if len(data[0]) < 0:
+        ax.hist(data[0],
+                color=DARK_BLUE,
+                range=(min_val, max_val),
+                bins=num_bins,
+                histtype='step',
+                linewidth=small_lw,
+                density=True,
+                label=labels[0])
     ax.hist(data[1],
             color=DARK_ORANGE,
             range=(min_val, max_val),
