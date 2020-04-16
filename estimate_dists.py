@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from functools import partial
+import multiprocessing
+
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.stats import chisquare
+
+
+CPU_COUNT = 8
 
 TARGET_LABEL = 'transient_type'
 DATA_DIR = 'data/'
@@ -77,18 +83,16 @@ def filter_class_feature_range(class_name, feature_name, min_feature, max_featur
     return filt_df['redshift'].values
 
 
-def filter_lsst_data(class_name, feature_name, min_feature, max_feature, data):
+def filter_lsst_data(feature_name, min_feature, max_feature, data):
     """
     Get redshift values for data filtered on this range: label class_name
     whose  feature values are in the range [min_feature,max_feature ] 
-    :param data: loaded pickle of lsst-sims.pk
+    :param data: class data
     """
-    class_data = data[class_name]
-
-    feature_vals = class_data[feature_name]
+    feature_vals = data[feature_name]
     indices = np.where((feature_vals >= min_feature) & (feature_vals <= max_feature))[0]
 
-    class_data_Z = class_data['true_z']
+    class_data_Z = data['true_z']
 
     class_data_filt = np.take(class_data_Z, indices)
 
@@ -98,21 +102,35 @@ def filter_lsst_data(class_name, feature_name, min_feature, max_feature, data):
 
 
 def get_best_range(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
-    best_rmse = 100
-    best_range = 0
+
+    ranges = []
     for min_range in min_vals:
         for max_range in max_vals:
             if min_range < max_range:
-                rmse = get_fit(lsst_data,
-                               thex_data_df,
-                               class_name,
-                               feature_name,
-                               lsst_feature_name,
-                               min_range,
-                               max_range)
-                if rmse < best_rmse:
-                    best_rmse = rmse
-                    best_range = [min_range, max_range]
+                ranges.append([min_range, max_range])
+
+    lsst_class_data = lsst_data[class_name]
+
+    print("Running " + str(CPU_COUNT) + " processes.")
+    pool = multiprocessing.Pool(CPU_COUNT)
+
+    # Pass in parameters that don't change for parallel processes
+    func = partial(get_fit,
+                   lsst_class_data,
+                   thex_data_df,
+                   class_name,
+                   feature_name,
+                   lsst_feature_name)
+    # Multithread over ranges
+    rmses = []
+    rmses = pool.map(func, ranges)
+    pool.close()
+    pool.join()
+    print("Done processing...")
+
+    min_rmse_index = rmses.index(min(rmses))
+    best_rmse = rmses[min_rmse_index]
+    best_range = ranges[min_rmse_index]
 
     best_min = best_range[0]
     best_max = best_range[1]
@@ -140,9 +158,11 @@ def get_hists(thex_data, lsst_data_filt):
     return thex_hist, lsst_hist
 
 
-def get_fit(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_range, max_range):
-    lsst_data_filt = filter_lsst_data(class_name=class_name,
-                                      feature_name=lsst_feature_name,
+def get_fit(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, test_range):
+    print("Testing range " + str(test_range))
+    min_range = test_range[0]
+    max_range = test_range[1]
+    lsst_data_filt = filter_lsst_data(feature_name=lsst_feature_name,
                                       min_feature=min_range,
                                       max_feature=max_range,
                                       data=lsst_data)
@@ -290,6 +310,7 @@ import sys
 
 def main(argv):
     # Pull down data
+    # Call like python estimate_dists.py Ia r
 
     with open(DATA_DIR + 'lsst-sims.pk', 'rb') as f:
         lc_prop = pickle.load(f)
@@ -306,8 +327,8 @@ def main(argv):
 
     feature_name = feature + '_mag'
     lsst_feature_name = feature + '_first_mag'
-    min_vals = np.linspace(10, 12, 20)
-    max_vals = np.linspace(15, 20, 20)
+    min_vals = np.linspace(8, 12, 40)
+    max_vals = np.linspace(14, 20, 40)
 
     # All Features best params
     print("\nEstimating for all-features dataset")
@@ -328,17 +349,16 @@ def main(argv):
                                                 min_vals,
                                                 max_vals)
 
-    lsst_data_AF = filter_lsst_data(class_name=class_name,
-                                    feature_name=lsst_feature_name,
+    lsst_class_data = lc_prop[class_name]
+    lsst_data_AF = filter_lsst_data(feature_name=lsst_feature_name,
                                     min_feature=best_min_AF,
                                     max_feature=best_max_AF,
-                                    data=lc_prop)
+                                    data=lsst_class_data)
 
-    lsst_data_gw2 = filter_lsst_data(class_name=class_name,
-                                     feature_name=lsst_feature_name,
+    lsst_data_gw2 = filter_lsst_data(feature_name=lsst_feature_name,
                                      min_feature=best_min_GW2,
                                      max_feature=best_max_GW2,
-                                     data=lc_prop)
+                                     data=lsst_class_data)
 
     lsst_AF_ranges = [best_min_AF, best_max_AF]
     lsst_GW2_ranges = [best_min_GW2, best_max_GW2]
