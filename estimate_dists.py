@@ -12,7 +12,7 @@ from scipy.stats import chisquare
 
 
 CPU_COUNT = 8
-
+NUM_BINS = 200
 TARGET_LABEL = 'transient_type'
 DATA_DIR = 'data/'
 
@@ -101,6 +101,15 @@ def filter_lsst_data(feature_name, min_feature, max_feature, data):
     return class_data_filt
 
 
+def get_hist(data):
+    """
+    Get histograms for the two datas
+    """
+    hist, bin_edges = np.histogram(data, range=(0, 1),
+                                   bins=NUM_BINS, density=True)
+    return hist
+
+
 def get_best_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
     """
     Find min and max range for feature that gets LSST and THEx redshift distributions for this class as close together, as measured by RMSE.
@@ -112,15 +121,17 @@ def get_best_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst
             if min_range < max_range:
                 ranges.append([min_range, max_range])
 
+    thex_data_orig = get_thex_class_redshifts(class_name, thex_data_df)
+    thex_hist = get_hist(thex_data_orig)
+
     print("Running " + str(CPU_COUNT) + " processes.")
     pool = multiprocessing.Pool(CPU_COUNT)
 
     # Pass in parameters that don't change for parallel processes
     func = partial(get_fit,
                    lsst_class_data,
-                   thex_data_df,
+                   thex_hist,
                    class_name,
-                   feature_name,
                    lsst_feature_name)
     # Multithread over ranges
     rmses = []
@@ -140,26 +151,7 @@ def get_best_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst
     return best_min, best_max
 
 
-def get_hists(thex_data, lsst_data_filt):
-    """
-    Get histograms for the two datas
-    """
-    min_val = min(thex_data.min(), lsst_data_filt.min())
-    max_val = 1  # max(thex_data.max(), lsst_data.max())
-    num_bins = 200
-    thex_hist, bin_edges = np.histogram(thex_data,
-                                        range=(min_val, max_val),
-                                        bins=num_bins,
-                                        density=True)
-
-    lsst_hist, bin_edges = np.histogram(lsst_data_filt,
-                                        range=(min_val, max_val),
-                                        bins=num_bins,
-                                        density=True)
-    return thex_hist, lsst_hist
-
-
-def get_fit(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, test_range):
+def get_fit(lsst_data, thex_hist, class_name, lsst_feature_name, test_range):
     """
     Estimate RMSE for min and max range for feature and class between LSST and THEx redshift distribution
     """
@@ -172,11 +164,9 @@ def get_fit(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name
                                       max_feature=max_range,
                                       data=lsst_data)
 
-    thex_data_orig = get_thex_class_redshifts(class_name, thex_data_df)
-
-    if len(thex_data_orig) == 0 or len(lsst_data_filt) == 0:
+    if len(lsst_data_filt) == 0:
         return 100
-    thex_hist, lsst_hist = get_hists(thex_data_orig, lsst_data_filt)
+    lsst_hist = get_hist(lsst_data_filt)
     t = np.array(thex_hist)
     l = np.array(lsst_hist)
 
@@ -205,7 +195,7 @@ def plot_redshift_compare(data, labels, cname):
     # Plotting parameters
     min_val = 0
     max_val = 1
-    num_bins = 100
+    num_bins = NUM_BINS
 
     # Plotting visualization parameters
     small_lw = 0.8
