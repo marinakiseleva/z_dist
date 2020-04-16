@@ -333,8 +333,8 @@ def main(argv):
 
     feature_name = feature + '_mag'
     lsst_feature_name = feature + '_first_mag'
-    num_samples = 40
-    min_vals = np.linspace(8, 12, num_samples)
+    num_samples = 100
+    min_vals = np.linspace(8, 14, num_samples)
     max_vals = np.linspace(14, 20, num_samples)
 
     lsst_class_data = lc_prop[lsst_class_name]
