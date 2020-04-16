@@ -8,7 +8,7 @@ import pandas as pd
 from scipy.stats import chisquare
 
 TARGET_LABEL = 'transient_type'
-DATA_DIR = '/Users/marina/Documents/PhD/research/astro_research/code/dist_code/data/'
+DATA_DIR = 'data/'
 
 
 def get_data(name):
@@ -97,6 +97,73 @@ def filter_lsst_data(class_name, feature_name, min_feature, max_feature, data):
     return class_data_filt
 
 
+def get_best_range(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
+    best_rmse = 100
+    best_range = 0
+    for min_range in min_vals:
+        for max_range in max_vals:
+            if min_range < max_range:
+                rmse = get_fit(lsst_data,
+                               thex_data_df,
+                               class_name,
+                               feature_name,
+                               lsst_feature_name,
+                               min_range,
+                               max_range)
+                if rmse < best_rmse:
+                    best_rmse = rmse
+                    best_range = [min_range, max_range]
+
+    best_min = best_range[0]
+    best_max = best_range[1]
+    print("Best RMSE: " + str(best_rmse) + " with range " +
+          str(best_min) + " - " + str(best_max))
+    return best_min, best_max
+
+
+def get_hists(thex_data, lsst_data_filt):
+    """
+    Get histograms for the two datas
+    """
+    min_val = min(thex_data.min(), lsst_data_filt.min())
+    max_val = 1  # max(thex_data.max(), lsst_data.max())
+    num_bins = 200
+    thex_hist, bin_edges = np.histogram(thex_data,
+                                        range=(min_val, max_val),
+                                        bins=num_bins,
+                                        density=True)
+
+    lsst_hist, bin_edges = np.histogram(lsst_data_filt,
+                                        range=(min_val, max_val),
+                                        bins=num_bins,
+                                        density=True)
+    return thex_hist, lsst_hist
+
+
+def get_fit(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_range, max_range):
+    lsst_data_filt = filter_lsst_data(class_name=class_name,
+                                      feature_name=lsst_feature_name,
+                                      min_feature=min_range,
+                                      max_feature=max_range,
+                                      data=lsst_data)
+
+    thex_data_orig = get_thex_class_redshifts(class_name, thex_data_df)
+
+    if len(thex_data_orig) == 0 or len(lsst_data_filt) == 0:
+        return 100
+    thex_hist, lsst_hist = get_hists(thex_data_orig, lsst_data_filt)
+    t = np.array(thex_hist)
+    l = np.array(lsst_hist)
+
+    rmse = np.sqrt(np.mean((t - l)**2))
+    return rmse
+
+
+"""
+Plotting code
+"""
+
+
 def plot_redshift_compare(data, labels, cname):
     """
     Plot redshift distributions of the subset of data for
@@ -104,20 +171,20 @@ def plot_redshift_compare(data, labels, cname):
     """
     FIG_WIDTH = 6
     FIG_HEIGHT = 4
-    DPI = 400
+    DPI = 200
     fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
                            dpi=DPI,
                            tight_layout=True,
                            sharex=True,
                            sharey=True)
-
-    min_val = 0  # min(thex_data.min(), lsst_data.min())
-    max_val = 1  # max(thex_data.max(), lsst_data.max())
-
+    # Plotting parameters
+    min_val = 0
+    max_val = 1
     num_bins = 100
+
+    # Plotting visualization parameters
     small_lw = 0.8
     large_lw = 1.2
-
     LIGHT_BLUE = '#b3ccff'
     DARK_BLUE = '#003399'
     LIGHT_ORANGE = '#ffc2b3'
@@ -171,46 +238,8 @@ def plot_redshift_compare(data, labels, cname):
     ax.set_xlim(min_val, max_val)
     plt.legend(fontsize=10)
     plt.xlabel("Redshift", fontsize=10)
-    plt.savefig("../figures/" + cname + "_redshift_overlap.png")
+    plt.savefig("figures/" + cname + "_redshift_overlap.png")
     plt.show()
-
-
-def get_hists(thex_data, lsst_data_filt):
-    """
-    Get histograms for the two datas
-    """
-    min_val = min(thex_data.min(), lsst_data_filt.min())
-    max_val = 1  # max(thex_data.max(), lsst_data.max())
-    num_bins = 200
-    thex_hist, bin_edges = np.histogram(thex_data,
-                                        range=(min_val, max_val),
-                                        bins=num_bins,
-                                        density=True)
-
-    lsst_hist, bin_edges = np.histogram(lsst_data_filt,
-                                        range=(min_val, max_val),
-                                        bins=num_bins,
-                                        density=True)
-    return thex_hist, lsst_hist
-
-
-def get_fit(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_range, max_range):
-    lsst_data_filt = filter_lsst_data(class_name=class_name,
-                                      feature_name=lsst_feature_name,
-                                      min_feature=min_range,
-                                      max_feature=max_range,
-                                      data=lsst_data)
-
-    thex_data_orig = get_thex_class_redshifts(class_name, thex_data_df)
-
-    if len(thex_data_orig) == 0 or len(lsst_data_filt) == 0:
-        return 100
-    thex_hist, lsst_hist = get_hists(thex_data_orig, lsst_data_filt)
-    t = np.array(thex_hist)
-    l = np.array(lsst_hist)
-
-    rmse = np.sqrt(np.mean((t - l)**2))
-    return rmse
 
 
 def plot_fit(lsst_orig, lsst_AF, lsst_GW2, lsst_AF_ranges, lsst_GW2_ranges, thex_data_AF, thex_data_gW2, class_name, lsst_feature_name):
@@ -240,30 +269,6 @@ def plot_fit(lsst_orig, lsst_AF, lsst_GW2, lsst_AF_ranges, lsst_GW2_ranges, thex
     plot_redshift_compare(datas, labels, class_name)
 
 
-def get_best_range(lsst_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
-    best_rmse = 100
-    best_range = 0
-    for min_range in min_vals:
-        for max_range in max_vals:
-            if min_range < max_range:
-                rmse = get_fit(lsst_data,
-                               thex_data_df,
-                               class_name,
-                               feature_name,
-                               lsst_feature_name,
-                               min_range,
-                               max_range)
-                if rmse < best_rmse:
-                    best_rmse = rmse
-                    best_range = [min_range, max_range]
-
-    best_min = best_range[0]
-    best_max = best_range[1]
-    print("Best RMSE: " + str(best_rmse) + " with range " +
-          str(best_min) + " - " + str(best_max))
-    return best_min, best_max
-
-
 # keys in lsst-sims.pk are:
 # obj_id:                         light curve id
 # true_z, photo_z:                transient redshift and host photo-z
@@ -280,8 +285,10 @@ def get_best_range(lsst_data, thex_data_df, class_name, feature_name, lsst_featu
 # *_min_flux, *_min_flux_err:     minimal flux (matching faintest magnitude)
 # *_max_flux, *_max_flux_err:     maximal flux (matching peak magnitude)
 
+import sys
 
-def main():
+
+def main(argv):
     # Pull down data
 
     with open(DATA_DIR + 'lsst-sims.pk', 'rb') as f:
@@ -294,13 +301,16 @@ def main():
     # lc_prop.keys()
     # Only features to choose from are g, r, i, z, y
 
-    class_name = 'Ia'
-    feature_name = 'r_mag'
-    lsst_feature_name = 'r_first_mag'
-    min_vals = np.linspace(10, 12, 100)
-    max_vals = np.linspace(15, 20, 100)
+    class_name = argv[1]  # 'Ia'
+    feature = argv[2]  # 'r_mag'
+
+    feature_name = feature + '_mag'
+    lsst_feature_name = feature + '_first_mag'
+    min_vals = np.linspace(10, 12, 20)
+    max_vals = np.linspace(15, 20, 20)
 
     # All Features best params
+    print("\nEstimating for all-features dataset")
     best_min_AF, best_max_AF = get_best_range(lc_prop,
                                               df_all_features,
                                               class_name,
@@ -309,6 +319,7 @@ def main():
                                               min_vals,
                                               max_vals)
     # g-W2 dataset best params
+    print("\nEstimating for g-W2-dataset")
     best_min_GW2, best_max_GW2 = get_best_range(lc_prop,
                                                 df_g_W2,
                                                 class_name,
@@ -348,4 +359,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)
