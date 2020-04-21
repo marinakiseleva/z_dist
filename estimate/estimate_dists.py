@@ -10,6 +10,7 @@ import numpy as np
 
 
 from estimate.constants import *
+from estimate.plotting import *
 
 
 def get_data(name):
@@ -90,13 +91,11 @@ def filter_lsst_data(feature_name, min_feature, max_feature, data):
     for index, f in enumerate(data[feature_name]):
         if ~np.isnan(f):
             if f >= min_feature and f <= max_feature:
-                indices.append(f)
+                indices.append(index)
 
     class_data_Z = data['true_z']
-
     class_data_filt = np.take(class_data_Z, indices)
 
-    class_data_filt = class_data_filt[~np.isnan(class_data_filt)]
     return class_data_filt
 
 
@@ -226,33 +225,41 @@ def get_best_KS_range(lsst_class_data, thex_data_df, class_name, feature_name, l
 
     thex_data_orig = get_thex_class_redshifts(class_name, thex_data_df)
 
-    # print("Running " + str(CPU_COUNT) + " processes.")
-    # pool = multiprocessing.Pool(CPU_COUNT)
-    # # Pass in parameters that don't change for parallel processes
-    # func = partial(get_KS_fit, lsst_class_data,
-    #                thex_data_orig,
-    #                class_name,
-    #                lsst_feature_name)
-    # # Multithread over ranges
-    # stats = []
-    # stats = pool.map(func, ranges)
-    # pool.close()
-    # pool.join()
-    # print("Done processing...")
-
+    print("Running " + str(CPU_COUNT) + " processes.")
+    pool = multiprocessing.Pool(CPU_COUNT)
+    # Pass in parameters that don't change for parallel processes
+    func = partial(get_KS_fit,
+                   lsst_class_data,
+                   thex_data_orig,
+                   class_name,
+                   lsst_feature_name)
+    # Multithread over ranges
+    overall_stats = []
+    overall_stats = pool.map(func, ranges)
+    pool.close()
+    pool.join()
+    print("Done processing...")
     stats = []
     p_values = []
     accepted = []  # True if D < D_critical
-    for r in ranges:
-        print(r)
-        stat, p, a = get_KS_fit(lsst_class_data,
-                                thex_data_orig,
-                                class_name,
-                                lsst_feature_name,
-                                r)
-        stats.append(stat)
-        p_values.append(p)
-        accepted.append(a)
+    for s in overall_stats:
+        stats.append(s[0])
+        p_values.append(s[1])
+        accepted.append(s[2])
+
+    # stats = []
+    # p_values = []
+    # accepted = []  # True if D < D_critical
+    # for r in ranges:
+    #     print(r)
+    #     stat, p, a = get_KS_fit(lsst_class_data,
+    #                             thex_data_orig,
+    #                             class_name,
+    #                             lsst_feature_name,
+    #                             r)
+    #     stats.append(stat)
+    #     p_values.append(p)
+    #     accepted.append(a)
 
     # Select KS with lowest value
     min_stat_index = stats.index(min(stats))
@@ -306,9 +313,9 @@ def main(argv):
 
     feature_name = feature + '_mag'
     lsst_feature_name = feature + '_first_mag'
-    num_samples = 20
-    min_vals = np.linspace(8, 18, num_samples)
-    max_vals = np.linspace(20, 30, num_samples)
+    num_samples = 4
+    min_vals = np.linspace(7.5, 8.2, num_samples)
+    max_vals = np.linspace(17.2, 17.7, num_samples)
 
     lsst_class_data = lc_prop[lsst_class_name]
 
@@ -344,19 +351,17 @@ def main(argv):
     lsst_AF_ranges = [best_min_AF, best_max_AF]
     lsst_GW2_ranges = [best_min_GW2, best_max_GW2]
 
+    thex_Z_AF = get_thex_class_redshifts(thex_class_name, df_all_features)
+    thex_Z_gw2 = get_thex_class_redshifts(thex_class_name, df_g_W2)
     plot_fit(lsst_class_data,
              lsst_data_AF,
              lsst_data_gw2,
              lsst_AF_ranges,
              lsst_GW2_ranges,
-             df_all_features,
-             df_g_W2,
+             thex_Z_AF,
+             thex_Z_gw2,
              thex_class_name,
              lsst_feature_name)
-
-    # chisq, p = chisquare(f_obs=thex_hist, f_exp=lsst_hist)
-    # print("Chi squared test statistic: " + str(chisq))
-    # print("p value: " + str(p))
 
 
 if __name__ == "__main__":

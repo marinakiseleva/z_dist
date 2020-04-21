@@ -88,12 +88,10 @@ def plot_redshift_compare(data, labels, cname):
     plt.show()
 
 
-def plot_fit(lsst_class_data, lsst_AF, lsst_GW2, lsst_AF_ranges, lsst_GW2_ranges, thex_data_AF, thex_data_gW2, class_name, lsst_feature_name):
+def plot_fit(lsst_class_data, lsst_AF, lsst_GW2, lsst_AF_ranges, lsst_GW2_ranges, thex_Z_AF, thex_Z_gw2, class_name, lsst_feature_name):
 
     thex_Z_AF_label = "THEx all-features " + class_name
     thex_Z_gw2_label = "THEx g-W2 " + class_name
-    thex_Z_AF = get_thex_class_redshifts(class_name, thex_data_AF)
-    thex_Z_gw2 = get_thex_class_redshifts(class_name, thex_data_gW2)
 
     lsst_data_orig = lsst_class_data["true_z"]
     lsst_data_orig = lsst_data_orig[~np.isnan(lsst_data_orig)]
