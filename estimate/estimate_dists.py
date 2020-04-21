@@ -14,7 +14,7 @@ from scipy.stats import chisquare
 CPU_COUNT = 8
 NUM_BINS = 200
 TARGET_LABEL = 'transient_type'
-DATA_DIR = 'data/'
+DATA_DIR = '/Users/marina/Documents/PhD/research/astro_research/code/dist_code/data/'
 
 
 def get_data(name):
@@ -89,15 +89,19 @@ def filter_lsst_data(feature_name, min_feature, max_feature, data):
     whose  feature values are in the range [min_feature,max_feature ] 
     :param data: class data
     """
+
     feature_vals = data[feature_name]
-    indices = np.where((feature_vals >= min_feature) & (feature_vals <= max_feature))[0]
+    indices = []
+    for index, f in enumerate(data[feature_name]):
+        if ~np.isnan(f):
+            if f >= min_feature and f <= max_feature:
+                indices.append(f)
 
     class_data_Z = data['true_z']
 
     class_data_filt = np.take(class_data_Z, indices)
 
     class_data_filt = class_data_filt[~np.isnan(class_data_filt)]
-
     return class_data_filt
 
 
@@ -108,6 +112,29 @@ def get_hist(data):
     hist, bin_edges = np.histogram(data, range=(0, 1),
                                    bins=NUM_BINS, density=True)
     return hist
+
+
+def get_fit(lsst_data, thex_hist, class_name, lsst_feature_name, test_range):
+    """
+    Estimate RMSE for min and max range for feature and class between LSST and THEx redshift distribution
+    """
+
+    print("Testing range " + str(test_range))
+    min_range = test_range[0]
+    max_range = test_range[1]
+    lsst_data_filt = filter_lsst_data(feature_name=lsst_feature_name,
+                                      min_feature=min_range,
+                                      max_feature=max_range,
+                                      data=lsst_data)
+
+    if len(lsst_data_filt) == 0:
+        return 100
+    lsst_hist = get_hist(lsst_data_filt)
+    t = np.array(thex_hist)
+    l = np.array(lsst_hist)
+
+    rmse = np.sqrt(np.mean((t - l)**2))
+    return rmse
 
 
 def get_best_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
@@ -150,8 +177,11 @@ def get_best_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst
           str(best_min) + " - " + str(best_max))
     return best_min, best_max
 
+from scipy import stats
+import math
 
-def get_fit(lsst_data, thex_hist, class_name, lsst_feature_name, test_range):
+
+def get_KS_fit(lsst_data, thex_data, class_name, lsst_feature_name, test_range):
     """
     Estimate RMSE for min and max range for feature and class between LSST and THEx redshift distribution
     """
@@ -159,19 +189,89 @@ def get_fit(lsst_data, thex_hist, class_name, lsst_feature_name, test_range):
     print("Testing range " + str(test_range))
     min_range = test_range[0]
     max_range = test_range[1]
+
     lsst_data_filt = filter_lsst_data(feature_name=lsst_feature_name,
                                       min_feature=min_range,
                                       max_feature=max_range,
                                       data=lsst_data)
 
     if len(lsst_data_filt) == 0:
-        return 100
-    lsst_hist = get_hist(lsst_data_filt)
-    t = np.array(thex_hist)
-    l = np.array(lsst_hist)
+        return 100, 0, False
 
-    rmse = np.sqrt(np.mean((t - l)**2))
-    return rmse
+    l = lsst_data_filt
+    t = thex_data
+
+    KS_statistic, p_value = stats.ks_2samp(t, l)
+
+    t_size = len(t)
+    l_size = len(l)
+
+    D_critical = 1.36 * math.sqrt((t_size + l_size) / (t_size * l_size))
+
+    acceptable = False
+    if KS_statistic < D_critical:
+        print(str(KS_statistic) + " for D critical " + str(D_critical))
+        acceptable = True
+
+    print("\nKS Stat: " + str(KS_statistic) + "; P-value: " +
+          str(p_value) + "; Accepted " + str(acceptable))
+    return [KS_statistic, p_value, acceptable]
+
+
+def get_best_KS_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
+    """
+    Find min and max range for feature that gets LSST and THEx redshift distributions for this class as close together, as measured by RMSE.
+    """
+
+    ranges = []
+    for min_range in min_vals:
+        for max_range in max_vals:
+            if min_range < max_range:
+                ranges.append([min_range, max_range])
+
+    thex_data_orig = get_thex_class_redshifts(class_name, thex_data_df)
+
+    # print("Running " + str(CPU_COUNT) + " processes.")
+    # pool = multiprocessing.Pool(CPU_COUNT)
+    # # Pass in parameters that don't change for parallel processes
+    # func = partial(get_KS_fit, lsst_class_data,
+    #                thex_data_orig,
+    #                class_name,
+    #                lsst_feature_name)
+    # # Multithread over ranges
+    # stats = []
+    # stats = pool.map(func, ranges)
+    # pool.close()
+    # pool.join()
+    # print("Done processing...")
+
+    stats = []
+    p_values = []
+    accepted = []  # True if D < D_critical
+    for r in ranges:
+        print(r)
+        stat, p, a = get_KS_fit(lsst_class_data,
+                                thex_data_orig,
+                                class_name,
+                                lsst_feature_name,
+                                r)
+        stats.append(stat)
+        p_values.append(p)
+        accepted.append(a)
+
+    # Select KS with lowest value
+    min_stat_index = stats.index(min(stats))
+    best_stat = stats[min_stat_index]
+    best_range = ranges[min_stat_index]
+    p_value = p_values[min_stat_index]
+    accepted_value = accepted[min_stat_index]
+
+    best_min = best_range[0]
+    best_max = best_range[1]
+    print("\n\nBest range: " + str(best_min) + " - " + str(best_max))
+    print("KS: " + str(best_stat) + "\np= " +
+          str(p_value) + "\nAccepted: " + str(accepted_value))
+    return best_min, best_max
 
 
 """
@@ -256,7 +356,8 @@ def plot_redshift_compare(data, labels, cname):
     plt.legend(fontsize=10)
     plt.xlabel("Redshift", fontsize=10)
     cname = cname.replace("/", "_")
-    plt.savefig("figures/" + cname + "_redshift_overlap.pdf")
+    print("saving figure to " + str(DATA_DIR + "../figures/" + cname + "_redshift_overlap.pdf"))
+    plt.savefig(DATA_DIR + "../figures/" + cname + "_redshift_overlap.pdf")
     plt.show()
 
 
@@ -308,7 +409,7 @@ import sys
 
 def main(argv):
     # Pull down data
-    # Call like python estimate_dists.py Ia r
+    # Call like python estimate_dists.py Ia Ia r
 
     with open(DATA_DIR + 'lsst-sims.pk', 'rb') as f:
         lc_prop = pickle.load(f)
@@ -325,30 +426,30 @@ def main(argv):
 
     feature_name = feature + '_mag'
     lsst_feature_name = feature + '_first_mag'
-    num_samples = 100
-    min_vals = np.linspace(8, 14, num_samples)
-    max_vals = np.linspace(14, 20, num_samples)
+    num_samples = 20
+    min_vals = np.linspace(8, 18, num_samples)
+    max_vals = np.linspace(17, 30, num_samples)
 
     lsst_class_data = lc_prop[lsst_class_name]
 
     # All Features best params
     print("\nEstimating for all-features dataset")
-    best_min_AF, best_max_AF = get_best_range(lsst_class_data,
-                                              df_all_features,
-                                              thex_class_name,
-                                              feature_name,
-                                              lsst_feature_name,
-                                              min_vals,
-                                              max_vals)
+    best_min_AF, best_max_AF = get_best_KS_range(lsst_class_data,
+                                                 df_all_features,
+                                                 thex_class_name,
+                                                 feature_name,
+                                                 lsst_feature_name,
+                                                 min_vals,
+                                                 max_vals)
     # g-W2 dataset best params
     print("\nEstimating for g-W2-dataset")
-    best_min_GW2, best_max_GW2 = get_best_range(lsst_class_data,
-                                                df_g_W2,
-                                                thex_class_name,
-                                                feature_name,
-                                                lsst_feature_name,
-                                                min_vals,
-                                                max_vals)
+    best_min_GW2, best_max_GW2 = get_best_KS_range(lsst_class_data,
+                                                   df_g_W2,
+                                                   thex_class_name,
+                                                   feature_name,
+                                                   lsst_feature_name,
+                                                   min_vals,
+                                                   max_vals)
 
     lsst_data_AF = filter_lsst_data(feature_name=lsst_feature_name,
                                     min_feature=best_min_AF,
