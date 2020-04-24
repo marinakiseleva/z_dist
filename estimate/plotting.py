@@ -42,7 +42,7 @@ def plot_redshift_compare(data, labels, cname):
             linewidth=large_lw,
             density=True,
             label=labels[2])
-    if len(data[0]) < 0:
+    if len(data[0]) > 0:
         ax.hist(data[3],
                 color=LIGHT_BLUE,
                 range=(min_val, max_val),
@@ -61,7 +61,7 @@ def plot_redshift_compare(data, labels, cname):
             label=labels[4])
 
     # THEx data
-    if len(data[0]) < 0:
+    if len(data[0]) > 0:
         ax.hist(data[0],
                 color=DARK_BLUE,
                 range=(min_val, max_val),
@@ -85,16 +85,26 @@ def plot_redshift_compare(data, labels, cname):
     cname = cname.replace("/", "_")
     print("saving figure to " + str(DATA_DIR + "../figures/" + cname + "_redshift_overlap.pdf"))
     plt.savefig(DATA_DIR + "../figures/" + cname + "_redshift_overlap.pdf")
-    plt.show()
+    # plt.show()
 
 
-def plot_fit(lsst_class_data, lsst_AF, lsst_GW2, lsst_AF_ranges, lsst_GW2_ranges, thex_Z_AF, thex_Z_gw2, class_name, lsst_feature_name):
+def plot_fit(lsst_df, lsst_AF, lsst_GW2, lsst_AF_ranges, lsst_GW2_ranges, thex_Z_AF, thex_Z_gw2, class_name, lsst_feature_name):
+    """
+    :param lsst_df: Original LSST DataFrame
+    :param lsst_AF: Numpy array of LSST filtered to all-features
+    :param lsst_GW2: Numpy array of LSST filtered to g-W2-dataset
+    :param lsst_GW2_ranges: [x,y] of range LSST was filtered on for g-W2
+    :param thex_Z_AF: THEx redshift values for all-features
+    :param thex_Z_gw2: THEx redshift values for g-W2
+    :param class_name: THEx class name
+    :param lsst_feature_name: LSST feature name
+    """
 
+    # Set all labels
     thex_Z_AF_label = "THEx all-features " + class_name
     thex_Z_gw2_label = "THEx g-W2 " + class_name
 
-    lsst_data_orig = lsst_class_data["true_z"]
-    lsst_data_orig = lsst_data_orig[~np.isnan(lsst_data_orig)]
+    lsst_data_orig = lsst_df["true_z"].values
     lsst_orig_label = "LSST " + class_name
 
     min_AF = round(lsst_AF_ranges[0], 2)

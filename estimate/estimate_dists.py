@@ -7,7 +7,8 @@ import multiprocessing
 import pickle
 import pandas as pd
 import numpy as np
-
+from scipy import stats
+import math
 
 from estimate.constants import *
 from estimate.plotting import *
@@ -35,68 +36,21 @@ def convert_str_to_list(input_string):
     return [item.strip(' ') for item in l]
 
 
+def get_thex_class_data(class_name, data):
+    """
+    Filter DataFrame to have only data with label class_name
+    """
+    keep_indices = []
+    for index, row in data.iterrows():
+        labels = convert_str_to_list(row[TARGET_LABEL])
+        if class_name in labels:
+            keep_indices.append(index)
+
+    return data.loc[keep_indices, :]
+
+
 def get_thex_class_redshifts(class_name, data):
-    keep_indices = []
-    for index, row in data.iterrows():
-        labels = convert_str_to_list(row[TARGET_LABEL])
-        if class_name in labels:
-            keep_indices.append(index)
-
-    return data.loc[keep_indices, :]['redshift'].values
-
-
-def get_thex_class_count(class_name, data):
-
-    keep_indices = []
-    for index, row in data.iterrows():
-        labels = convert_str_to_list(row[TARGET_LABEL])
-        if class_name in labels:
-            keep_indices.append(index)
-
-    return data.loc[keep_indices, :].reset_index(drop=True)
-
-
-def filter_class_feature_range(class_name, feature_name, min_feature, max_feature, data):
-    """
-    Get redshift values for data filtered on this range:
-    Filter data to those with class value and feature in range. 
-    :param class_name: class name to filter on
-    :param feature_name: Name of feature to filter on
-    :param min_feature: Minimum feature value to keep
-    :param max_feature: Maximum feature value to keep
-    :param data: Pandas DataFrame from model 
-    """
-
-    keep_indices = []
-    for index, row in data.iterrows():
-        labels = convert_str_to_list(row[TARGET_LABEL])
-        in_range = row[feature_name] >= min_feature and row[feature_name] <= max_feature
-        if class_name in labels and in_range:
-            keep_indices.append(index)
-
-    filt_df = data.loc[keep_indices, :].reset_index(drop=True)
-
-    return filt_df['redshift'].values
-
-
-def filter_lsst_data(feature_name, min_feature, max_feature, data):
-    """
-    Get redshift values for data filtered on this range: label class_name
-    whose  feature values are in the range [min_feature,max_feature ] 
-    :param data: class data
-    """
-
-    feature_vals = data[feature_name]
-    indices = []
-    for index, f in enumerate(data[feature_name]):
-        if ~np.isnan(f):
-            if f >= min_feature and f <= max_feature:
-                indices.append(index)
-
-    class_data_Z = data['true_z']
-    class_data_filt = np.take(class_data_Z, indices)
-
-    return class_data_filt
+    return get_thex_class_data(class_name, data)['redshift'].values
 
 
 def get_hist(data):
@@ -171,11 +125,44 @@ def get_best_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst
           str(best_min) + " - " + str(best_max))
     return best_min, best_max
 
-from scipy import stats
-import math
+
+def get_lsst_class_data(class_name, feature_name, data):
+    """
+    Get LSST data with this class name, and valid values for feature name
+    """
+
+    lsst_class_data = data[class_name]
+
+    feature_data = lsst_class_data[feature_name]
+
+    indices = []
+    for index, f in enumerate(feature_data):
+        if ~np.isnan(f):
+            indices.append(index)
+
+    valid_mags = np.take(lsst_class_data[feature_name], indices)
+    valid_Z = np.take(lsst_class_data['true_z'], indices)
+
+    df = pd.DataFrame(valid_mags, columns=[feature_name])
+    df['true_z'] = valid_Z.tolist()
+
+    return df
 
 
-def get_KS_fit(lsst_data, thex_data, class_name, lsst_feature_name, test_range):
+def get_LSST_filt_redshifts(min_feature, max_feature, data):
+    """
+    Get redshift values as Numpy array, for feature values in the range [min_feature, max_feature]. First column is features.
+    :param feature_name: Name of feature to filter on
+    :param min_feature: Minimum acceptable value of feature
+    :param max_feature: Maximum acceptable value of feature
+    :param data: LSST data as DataFrame with feature and redshift column
+    """
+    f_df = data[(data.iloc[:, 0] >= min_feature) & (data.iloc[:, 0] <= max_feature)]
+
+    return f_df['true_z'].values
+
+
+def get_KS_fit(lsst_df, thex_data, test_range):
     """
     Estimate RMSE for min and max range for feature and class between LSST and THEx redshift distribution
     """
@@ -184,10 +171,9 @@ def get_KS_fit(lsst_data, thex_data, class_name, lsst_feature_name, test_range):
     min_range = test_range[0]
     max_range = test_range[1]
 
-    lsst_data_filt = filter_lsst_data(feature_name=lsst_feature_name,
-                                      min_feature=min_range,
-                                      max_feature=max_range,
-                                      data=lsst_data)
+    lsst_data_filt = get_LSST_filt_redshifts(min_feature=min_range,
+                                             max_feature=max_range,
+                                             data=lsst_df)
 
     if len(lsst_data_filt) == 0:
         return 100, 0, False
@@ -212,9 +198,11 @@ def get_KS_fit(lsst_data, thex_data, class_name, lsst_feature_name, test_range):
     return [KS_statistic, p_value, acceptable]
 
 
-def get_best_KS_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
+def get_best_KS_range(lsst_df, thex_redshifts, min_vals, max_vals):
     """
     Find min and max range for feature that gets LSST and THEx redshift distributions for this class as close together, as measured by RMSE.
+    :param lsst_data: LSST DataFrame of redshift and feature values for class
+    :param thex_redshifts: List of THEx redshifts
     """
 
     ranges = []
@@ -223,16 +211,12 @@ def get_best_KS_range(lsst_class_data, thex_data_df, class_name, feature_name, l
             if min_range < max_range:
                 ranges.append([min_range, max_range])
 
-    thex_data_orig = get_thex_class_redshifts(class_name, thex_data_df)
-
     print("Running " + str(CPU_COUNT) + " processes.")
     pool = multiprocessing.Pool(CPU_COUNT)
     # Pass in parameters that don't change for parallel processes
     func = partial(get_KS_fit,
-                   lsst_class_data,
-                   thex_data_orig,
-                   class_name,
-                   lsst_feature_name)
+                   lsst_df,
+                   thex_redshifts)
     # Multithread over ranges
     overall_stats = []
     overall_stats = pool.map(func, ranges)
@@ -252,11 +236,7 @@ def get_best_KS_range(lsst_class_data, thex_data_df, class_name, feature_name, l
     # accepted = []  # True if D < D_critical
     # for r in ranges:
     #     print(r)
-    #     stat, p, a = get_KS_fit(lsst_class_data,
-    #                             thex_data_orig,
-    #                             class_name,
-    #                             lsst_feature_name,
-    #                             r)
+    #     stat, p, a = get_KS_fit(lsst_df, thex_redshifts, r)
     #     stats.append(stat)
     #     p_values.append(p)
     #     accepted.append(a)
@@ -296,8 +276,16 @@ import sys
 
 
 def main(argv):
-
-    # Call like python estimate_dists.py Ia Ia r
+    """
+    Call like python estimate_dists.py Ia Ia r
+    Only features to choose from are g, r, i, z, y
+    """
+    # Initialize passed-in args
+    thex_class_name = argv[1]
+    lsst_class_name = argv[2]
+    feature = argv[3]
+    feature_name = feature + '_mag'
+    lsst_feature_name = feature + '_first_mag'
 
     # Pull down LSST-like data
     with open(DATA_DIR + 'lsst-sims.pk', 'rb') as f:
@@ -306,54 +294,45 @@ def main(argv):
     df_all_features = get_data(name='all_features')
     df_g_W2 = get_data(name='g_W2')
 
-    # Only features to choose from are g, r, i, z, y
-    thex_class_name = argv[1]  # 'Ib/c'
-    lsst_class_name = argv[2]  # 'Ibc'
-    feature = argv[3]  # 'r_mag'
+    thex_Z_AF = get_thex_class_redshifts(thex_class_name, df_all_features)
+    thex_Z_gw2 = get_thex_class_redshifts(thex_class_name, df_g_W2)
 
-    feature_name = feature + '_mag'
-    lsst_feature_name = feature + '_first_mag'
-    num_samples = 4
-    min_vals = np.linspace(7.5, 8.2, num_samples)
-    max_vals = np.linspace(17.2, 17.7, num_samples)
+    # Set ranges of values to search over
+    num_samples = 50
+    # min_vals = np.linspace(7.5, 8.2, num_samples)
+    # max_vals = np.linspace(17.2, 17.7, num_samples)
+    min_vals = np.linspace(14, 16, num_samples)
+    max_vals = np.linspace(17, 19, num_samples)
 
-    lsst_class_data = lc_prop[lsst_class_name]
+    lsst_df = get_lsst_class_data(class_name=lsst_class_name,
+                                  feature_name=lsst_feature_name,
+                                  data=lc_prop)
 
     # All Features best params
     print("\nEstimating for all-features dataset")
-    best_min_AF, best_max_AF = get_best_KS_range(lsst_class_data,
-                                                 df_all_features,
-                                                 thex_class_name,
-                                                 feature_name,
-                                                 lsst_feature_name,
-                                                 min_vals,
-                                                 max_vals)
+    best_min_AF, best_max_AF = get_best_KS_range(lsst_df=lsst_df,
+                                                 thex_redshifts=thex_Z_AF,
+                                                 min_vals=min_vals,
+                                                 max_vals=max_vals)
     # g-W2 dataset best params
     print("\nEstimating for g-W2-dataset")
-    best_min_GW2, best_max_GW2 = get_best_KS_range(lsst_class_data,
-                                                   df_g_W2,
-                                                   thex_class_name,
-                                                   feature_name,
-                                                   lsst_feature_name,
-                                                   min_vals,
-                                                   max_vals)
+    best_min_GW2, best_max_GW2 = get_best_KS_range(lsst_df=lsst_df,
+                                                   thex_redshifts=thex_Z_gw2,
+                                                   min_vals=min_vals,
+                                                   max_vals=max_vals)
 
-    lsst_data_AF = filter_lsst_data(feature_name=lsst_feature_name,
-                                    min_feature=best_min_AF,
-                                    max_feature=best_max_AF,
-                                    data=lsst_class_data)
+    lsst_data_AF = get_LSST_filt_redshifts(min_feature=best_min_AF,
+                                           max_feature=best_max_AF,
+                                           data=lsst_df)
 
-    lsst_data_gw2 = filter_lsst_data(feature_name=lsst_feature_name,
-                                     min_feature=best_min_GW2,
-                                     max_feature=best_max_GW2,
-                                     data=lsst_class_data)
+    lsst_data_gw2 = get_LSST_filt_redshifts(min_feature=best_min_GW2,
+                                            max_feature=best_max_GW2,
+                                            data=lsst_df)
 
     lsst_AF_ranges = [best_min_AF, best_max_AF]
     lsst_GW2_ranges = [best_min_GW2, best_max_GW2]
 
-    thex_Z_AF = get_thex_class_redshifts(thex_class_name, df_all_features)
-    thex_Z_gw2 = get_thex_class_redshifts(thex_class_name, df_g_W2)
-    plot_fit(lsst_class_data,
+    plot_fit(lsst_df,
              lsst_data_AF,
              lsst_data_gw2,
              lsst_AF_ranges,
