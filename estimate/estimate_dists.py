@@ -333,16 +333,18 @@ def main(argv):
     num_samples = 100
     # min_vals = [15.99, 16.03]
     # max_vals = [16.3, 16.24]
+    # min_vals = [13]
+    # max_vals = [18.3, 18.55, 21.15]
+
     min_vals = np.linspace(13, 17, num_samples)
     max_vals = np.linspace(16, 22, num_samples)
 
-    # All Features best params
     delim = "-" * 100
-    print(delim + "\nEstimating for all-features dataset")
-    if len(thex_Z_AF) == 0:
-        lsst_AF_ranges = [0, 0]
-        lsst_data_AF = np.array([])
-    else:
+    lsst_Z_orig = lsst_df["true_z"].values
+
+    # All Features best params
+    if len(thex_Z_AF) > 25:
+        print(delim + "\nEstimating for all-features dataset")
         best_min_AF, best_max_AF = get_best_KS_range(lsst_df=lsst_df,
                                                      thex_redshifts=thex_Z_AF,
                                                      min_vals=min_vals,
@@ -351,6 +353,12 @@ def main(argv):
                                                max_feature=best_max_AF,
                                                data=lsst_df)
         lsst_AF_ranges = [best_min_AF, best_max_AF]
+        plot_redshift_compare(thex_data=thex_Z_AF,
+                              lsst_orig=lsst_Z_orig,
+                              lsst_filt=lsst_data_AF,
+                              lsst_range=lsst_AF_ranges,
+                              cname=thex_class_name,
+                              dataset='allfeatures')
 
     # g-W2 dataset best params
     print(delim + "\nEstimating for g-W2-dataset")
@@ -365,15 +373,12 @@ def main(argv):
 
     lsst_GW2_ranges = [best_min_GW2, best_max_GW2]
 
-    plot_fit(lsst_df,
-             lsst_data_AF,
-             lsst_data_gw2,
-             lsst_AF_ranges,
-             lsst_GW2_ranges,
-             thex_Z_AF,
-             thex_Z_gw2,
-             thex_class_name,
-             lsst_feature_name)
+    plot_redshift_compare(thex_data=thex_Z_gw2,
+                          lsst_orig=lsst_Z_orig,
+                          lsst_filt=lsst_data_gw2,
+                          lsst_range=lsst_GW2_ranges,
+                          cname=thex_class_name,
+                          dataset='gW2')
 
 
 if __name__ == "__main__":
