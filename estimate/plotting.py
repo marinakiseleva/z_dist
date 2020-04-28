@@ -29,9 +29,14 @@ def plot_redshift_compare(data, labels, cname):
     large_lw = 1.2
     LIGHT_BLUE = '#b3ccff'
     DARK_BLUE = '#003399'
-    LIGHT_ORANGE = '#ffc2b3'
-    DARK_ORANGE = '#ff3300'
+    LIGHT_ORANGE = "#ffddcc"
+    DARK_ORANGE = '#ff5500'
     LIGHT_GREEN = '#b3ffcc'
+
+    # Reset number of bins to less for smaller classes
+    # use
+    if len(data[1]) < 100:
+        num_bins = 50
 
     # LSST data
     ax.hist(data[2],
@@ -42,6 +47,14 @@ def plot_redshift_compare(data, labels, cname):
             linewidth=large_lw,
             density=True,
             label=labels[2])
+    ax.hist(data[4],
+            color=LIGHT_ORANGE,
+            range=(min_val, max_val),
+            bins=num_bins,
+            histtype='step',
+            linewidth=large_lw,
+            density=True,
+            label=labels[4])
     if len(data[0]) > 0:
         ax.hist(data[3],
                 color=LIGHT_BLUE,
@@ -51,14 +64,6 @@ def plot_redshift_compare(data, labels, cname):
                 linewidth=large_lw,
                 density=True,
                 label=labels[3])
-    ax.hist(data[4],
-            color=LIGHT_ORANGE,
-            range=(min_val, max_val),
-            bins=num_bins,
-            histtype='step',
-            linewidth=large_lw,
-            density=True,
-            label=labels[4])
 
     # THEx data
     if len(data[0]) > 0:
