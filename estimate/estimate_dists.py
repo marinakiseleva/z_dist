@@ -167,7 +167,7 @@ def get_KS_fit(lsst_df, thex_data, test_range):
     Estimate RMSE for min and max range for feature and class between LSST and THEx redshift distribution
     """
 
-    print("Testing range " + str(test_range))
+    # print("Testing range " + str(test_range))
     min_range = test_range[0]
     max_range = test_range[1]
 
@@ -186,15 +186,14 @@ def get_KS_fit(lsst_df, thex_data, test_range):
     t_size = len(t)
     l_size = len(l)
 
-    D_critical = 1.36 * math.sqrt((t_size + l_size) / (t_size * l_size))
+    D_critical = 1.95 * math.sqrt((t_size + l_size) / (t_size * l_size))
 
     acceptable = False
     if KS_statistic < D_critical:
-        print(str(KS_statistic) + " for D critical " + str(D_critical))
+        print("\nFor range " + str(min_range) + " - " + str(max_range) +
+              "\nAccepted " + str(KS_statistic) + " for D critical " + str(D_critical) + "; P-value: " + str(p_value))
         acceptable = True
 
-    print("\nKS Stat: " + str(KS_statistic) + "; P-value: " +
-          str(p_value) + "; Accepted " + str(acceptable))
     return [KS_statistic, p_value, acceptable]
 
 
@@ -241,7 +240,7 @@ def get_best_KS_range(lsst_df, thex_redshifts, min_vals, max_vals):
     #     p_values.append(p)
     #     accepted.append(a)
 
-    # Select KS with lowest value
+    # Select range with lowest KS
     min_stat_index = stats.index(min(stats))
     best_stat = stats[min_stat_index]
     best_range = ranges[min_stat_index]
@@ -253,6 +252,26 @@ def get_best_KS_range(lsst_df, thex_redshifts, min_vals, max_vals):
     print("\n\nBest range: " + str(best_min) + " - " + str(best_max))
     print("KS: " + str(best_stat) + "\np= " +
           str(p_value) + "\nAccepted: " + str(accepted_value))
+
+    # Alternatively: find largest range with True acceptance (pass test)
+    max_range = 0
+    best_r_index = None  # Index corresponding to largest true range
+    for index, a in enumerate(accepted):
+        if a == True:
+            min_val, max_val = ranges[index]
+            cur_range = max_val - min_val
+            if cur_range > max_range:
+                max_range = cur_range
+                best_r_index = index
+    if best_r_index is not None:
+        best_range = ranges[best_r_index]
+        best_min = best_range[0]
+        best_max = best_range[1]
+        print("\n\nBest range according to max True range: " +
+              str(best_min) + " - " + str(best_max))
+        print("KS: " + str(stats[best_r_index]) + "\np= " +
+              str(p_values[best_r_index]) + "\nAccepted: " + str(accepted[best_r_index]))
+
     return best_min, best_max
 
 
@@ -275,6 +294,19 @@ def get_best_KS_range(lsst_df, thex_redshifts, min_vals, max_vals):
 import sys
 
 
+def get_thex_z_data(thex_class_name):
+    """
+    Pull down our data, filter on class name
+    """
+    df_all_features = get_data(name='all_features')
+    df_g_W2 = get_data(name='g_W2')
+
+    thex_Z_AF = get_thex_class_redshifts(thex_class_name, df_all_features)
+    thex_Z_gw2 = get_thex_class_redshifts(thex_class_name, df_g_W2)
+
+    return thex_Z_AF, thex_Z_gw2
+
+
 def main(argv):
     """
     Call like python estimate_dists.py Ia Ia r
@@ -290,46 +322,47 @@ def main(argv):
     # Pull down LSST-like data
     with open(DATA_DIR + 'lsst-sims.pk', 'rb') as f:
         lc_prop = pickle.load(f)
-    # Pull down our data
-    df_all_features = get_data(name='all_features')
-    df_g_W2 = get_data(name='g_W2')
-
-    thex_Z_AF = get_thex_class_redshifts(thex_class_name, df_all_features)
-    thex_Z_gw2 = get_thex_class_redshifts(thex_class_name, df_g_W2)
-
-    # Set ranges of values to search over
-    num_samples = 50
-    # min_vals = np.linspace(7.5, 8.2, num_samples)
-    # max_vals = np.linspace(17.2, 17.7, num_samples)
-    min_vals = np.linspace(14, 16, num_samples)
-    max_vals = np.linspace(17, 19, num_samples)
-
     lsst_df = get_lsst_class_data(class_name=lsst_class_name,
                                   feature_name=lsst_feature_name,
                                   data=lc_prop)
 
+    # Pull down our data
+    thex_Z_AF, thex_Z_gw2 = get_thex_z_data(thex_class_name)
+
+    # Set ranges of values to search over
+    num_samples = 100
+    # min_vals = [15.99, 16.03]
+    # max_vals = [16.3, 16.24]
+    min_vals = np.linspace(13, 17, num_samples)
+    max_vals = np.linspace(16, 22, num_samples)
+
     # All Features best params
-    print("\nEstimating for all-features dataset")
-    best_min_AF, best_max_AF = get_best_KS_range(lsst_df=lsst_df,
-                                                 thex_redshifts=thex_Z_AF,
-                                                 min_vals=min_vals,
-                                                 max_vals=max_vals)
+    delim = "-" * 100
+    print(delim + "\nEstimating for all-features dataset")
+    if len(thex_Z_AF) == 0:
+        lsst_AF_ranges = [0, 0]
+        lsst_data_AF = np.array([])
+    else:
+        best_min_AF, best_max_AF = get_best_KS_range(lsst_df=lsst_df,
+                                                     thex_redshifts=thex_Z_AF,
+                                                     min_vals=min_vals,
+                                                     max_vals=max_vals)
+        lsst_data_AF = get_LSST_filt_redshifts(min_feature=best_min_AF,
+                                               max_feature=best_max_AF,
+                                               data=lsst_df)
+        lsst_AF_ranges = [best_min_AF, best_max_AF]
+
     # g-W2 dataset best params
-    print("\nEstimating for g-W2-dataset")
+    print(delim + "\nEstimating for g-W2-dataset")
     best_min_GW2, best_max_GW2 = get_best_KS_range(lsst_df=lsst_df,
                                                    thex_redshifts=thex_Z_gw2,
                                                    min_vals=min_vals,
                                                    max_vals=max_vals)
 
-    lsst_data_AF = get_LSST_filt_redshifts(min_feature=best_min_AF,
-                                           max_feature=best_max_AF,
-                                           data=lsst_df)
-
     lsst_data_gw2 = get_LSST_filt_redshifts(min_feature=best_min_GW2,
                                             max_feature=best_max_GW2,
                                             data=lsst_df)
 
-    lsst_AF_ranges = [best_min_AF, best_max_AF]
     lsst_GW2_ranges = [best_min_GW2, best_max_GW2]
 
     plot_fit(lsst_df,
