@@ -467,13 +467,13 @@ def main(argv):
 
     # Set ranges of values to search over
     num_samples = 100
-    min_vals = [15.99, 16.03, 16.4, 16.6]
-    max_vals = [16.3, 16.24, 16.5, 16.9]
+    #min_vals = [15.99, 16.03, 16.4, 16.6]
+    #max_vals = [16.3, 16.24, 16.5, 16.9]
     # min_vals = [13]
     # max_vals = [18.3, 18.55, 21.15]
 
-    # min_vals = np.linspace(13, 17, num_samples)
-    # max_vals = np.linspace(16, 22, num_samples)
+    min_vals = np.linspace(13, 17, num_samples)
+    max_vals = np.linspace(16, 22, num_samples)
 
     delim = "-" * 100
     lsst_Z_orig = lsst_df["true_z"].values
@@ -481,7 +481,7 @@ def main(argv):
     # All Features best params
     if len(thex_Z_AF) > 25:
         print(delim + "\nEstimating for all-features dataset")
-        best_min_AF, best_max_AF, r2 = get_best_KS_double_range(lsst_df=lsst_df,
+        best_min_AF, best_max_AF, r2 = get_best_KS_range(lsst_df=lsst_df,
                                                                 thex_redshifts=thex_Z_AF,
                                                                 min_vals=min_vals,
                                                                 max_vals=max_vals)
@@ -499,7 +499,7 @@ def main(argv):
 
     # g-W2 dataset best params
     print(delim + "\nEstimating for g-W2-dataset")
-    best_min_GW2, best_max_GW2, r2 = get_best_KS_double_range(lsst_df=lsst_df,
+    best_min_GW2, best_max_GW2, r2 = get_best_KS_range(lsst_df=lsst_df,
                                                               thex_redshifts=thex_Z_gw2,
                                                               min_vals=min_vals,
                                                               max_vals=max_vals)
