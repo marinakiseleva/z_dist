@@ -54,7 +54,7 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_range, cname, da
             label="Target: Original")
 
     lsst_filt_label = "Target: " + \
-        str(lsst_range[0]) + "<= r_first_mag <=" + str(lsst_range[1])
+        str(round(lsst_range[0], 2)) + "<= r_first_mag <=" + str(round(lsst_range[1], 2))
     ax.hist(lsst_filt,
             color=LIGHT_BLUE,
             range=(min_val, max_val),
@@ -75,7 +75,7 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_range, cname, da
     ax.set_xlim(min_val, max_val)
     plt.legend(fontsize=10)
     plt.xlabel("Redshift", fontsize=10)
-    plt.yscale('log')
+    # plt.yscale('log')
     cname = cname.replace("/", "_")
     plt.savefig(DATA_DIR + "../figures/" + cname + "_" +
                 str(dataset) + "_redshift_overlap.pdf")
