@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# !/usr / bin / env python
 # coding: utf-8
 
 from functools import partial
@@ -51,79 +51,6 @@ def get_thex_class_data(class_name, data):
 
 def get_thex_class_redshifts(class_name, data):
     return get_thex_class_data(class_name, data)['redshift'].values
-
-
-def get_hist(data):
-    """
-    Get histograms for the two datas
-    """
-    hist, bin_edges = np.histogram(data, range=(0, 1),
-                                   bins=NUM_BINS, density=True)
-    return hist
-
-
-def get_fit(lsst_data, thex_hist, class_name, lsst_feature_name, test_range):
-    """
-    Estimate RMSE for min and max range for feature and class between LSST and THEx redshift distribution
-    """
-
-    print("Testing range " + str(test_range))
-    min_range = test_range[0]
-    max_range = test_range[1]
-    lsst_data_filt = filter_lsst_data(feature_name=lsst_feature_name,
-                                      min_feature=min_range,
-                                      max_feature=max_range,
-                                      data=lsst_data)
-
-    if len(lsst_data_filt) == 0:
-        return 100
-    lsst_hist = get_hist(lsst_data_filt)
-    t = np.array(thex_hist)
-    l = np.array(lsst_hist)
-
-    rmse = np.sqrt(np.mean((t - l)**2))
-    return rmse
-
-
-def get_best_range(lsst_class_data, thex_data_df, class_name, feature_name, lsst_feature_name, min_vals, max_vals):
-    """
-    Find min and max range for feature that gets LSST and THEx redshift distributions for this class as close together, as measured by RMSE.
-    """
-
-    ranges = []
-    for min_range in min_vals:
-        for max_range in max_vals:
-            if min_range < max_range:
-                ranges.append([min_range, max_range])
-
-    thex_data_orig = get_thex_class_redshifts(class_name, thex_data_df)
-    thex_hist = get_hist(thex_data_orig)
-
-    print("Running " + str(CPU_COUNT) + " processes.")
-    pool = multiprocessing.Pool(CPU_COUNT)
-
-    # Pass in parameters that don't change for parallel processes
-    func = partial(get_fit,
-                   lsst_class_data,
-                   thex_hist,
-                   class_name,
-                   lsst_feature_name)
-    # Multithread over ranges
-    rmses = []
-    rmses = pool.map(func, ranges)
-    pool.close()
-    pool.join()
-    print("Done processing...")
-
-    min_rmse_index = rmses.index(min(rmses))
-    best_rmse = rmses[min_rmse_index]
-    best_range = ranges[min_rmse_index]
-
-    best_min = best_range[0]
-    best_max = best_range[1]
-    print("Best RMSE: " + str(best_rmse) + " with range " +
-          str(best_min) + " - " + str(best_max))
-    return best_min, best_max
 
 
 def get_lsst_class_data(class_name, feature_name, data):
@@ -196,7 +123,7 @@ def get_KS_double_fit(lsst_df, thex_data, ranges, range1):
     """
     Get fit when using two ranges for the feature
     """
-    print("Current range " + str(range1))
+    # print("Current range " + str(range1))
     stats = []
     r1_min = range1[0]
     r1_max = range1[1]
@@ -290,8 +217,17 @@ def get_best_range(ranges, stats, p_values, accepted, r2s=None):
     best_r_index = None  # Index corresponding to largest true range
     for index, a in enumerate(accepted):
         if a == True:
+
             min_val, max_val = ranges[index]
             cur_range = max_val - min_val
+            if r2s is not None:
+                # Add in range of range2
+                min_val2, max_val2 = r2s[index]
+                # Values are None when using no double range, (we run no double range to
+                # compare to double ranges)
+                if min_val2 is not None and max_val2 is not None:
+                    cur_range2 = max_val2 - min_val2
+                    cur_range += cur_range2
             if cur_range > max_range:
                 max_range = cur_range
                 best_r_index = index
@@ -465,15 +401,29 @@ def main(argv):
     # Pull down our data
     thex_Z_AF, thex_Z_gw2 = get_thex_z_data(thex_class_name)
 
-    # Set ranges of values to search over
-    num_samples = 100
-    #min_vals = [15.99, 16.03, 16.4, 16.6]
-    #max_vals = [16.3, 16.24, 16.5, 16.9]
-    # min_vals = [13]
-    # max_vals = [18.3, 18.55, 21.15]
+    # lsst_class_data = lsst_df[lsst_class_name]
+    # feature_data = lsst_class_data[lsst_feature_name].values
 
-    min_vals = np.linspace(13, 17, num_samples)
-    max_vals = np.linspace(16, 22, num_samples)
+    print("Min LSST value for " + str(lsst_feature_name) +
+          " : " + str(lsst_df.iloc[:, 0].min()))
+    min_lsst_val = lsst_df.iloc[:, 0].min()
+
+    # Set ranges of values to search over
+    if thex_class_name == "Ia-91bg":
+        min_vals = np.linspace(min_lsst_val, 16.7, 20)
+        max_vals = np.linspace(18, 19, 20)
+    elif thex_class_name == "II":
+        min_vals = [min_lsst_val]
+        max_vals = [19.35, 17.13]
+    elif thex_class_name == "TDE":
+        min_vals = [min_lsst_val]
+        max_vals = np.linspace(21.13, 21.5, 40)
+    elif thex_class_name == "Ia":
+        min_vals = [min_lsst_val]
+        max_vals = np.linspace(15, 15.4, 30)
+    else:
+        min_vals = np.linspace(min_lsst_val, 16, 20)
+        max_vals = np.linspace(15, 22, 30)
 
     delim = "-" * 100
     lsst_Z_orig = lsst_df["true_z"].values
@@ -482,39 +432,49 @@ def main(argv):
     if len(thex_Z_AF) > 25:
         print(delim + "\nEstimating for all-features dataset")
         best_min_AF, best_max_AF, r2 = get_best_KS_range(lsst_df=lsst_df,
-                                                                thex_redshifts=thex_Z_AF,
-                                                                min_vals=min_vals,
-                                                                max_vals=max_vals)
+                                                         thex_redshifts=thex_Z_AF,
+                                                         min_vals=min_vals,
+                                                         max_vals=max_vals)
         lsst_data_AF = get_LSST_filt_redshifts(min_feature=best_min_AF,
                                                max_feature=best_max_AF,
                                                data=lsst_df,
                                                r2=r2)
-        lsst_AF_ranges = [best_min_AF, best_max_AF]
+        lsst_filt_label = "Target: " + \
+            str(round(best_min_AF, 2)) + "<= r_first_mag <=" + \
+            str(round(best_max_AF, 2))
+        if r2 is not None:
+            lsst_filt_label += " and " + \
+                str(round(r2[0], 2)) + "<= r_first_mag <=" + str(round(r2[1], 2))
+
         plot_redshift_compare(thex_data=thex_Z_AF,
                               lsst_orig=lsst_Z_orig,
                               lsst_filt=lsst_data_AF,
-                              lsst_range=lsst_AF_ranges,
+                              lsst_filt_label=lsst_filt_label,
                               cname=thex_class_name,
                               dataset='allfeatures')
 
     # g-W2 dataset best params
     print(delim + "\nEstimating for g-W2-dataset")
     best_min_GW2, best_max_GW2, r2 = get_best_KS_range(lsst_df=lsst_df,
-                                                              thex_redshifts=thex_Z_gw2,
-                                                              min_vals=min_vals,
-                                                              max_vals=max_vals)
+                                                       thex_redshifts=thex_Z_gw2,
+                                                       min_vals=min_vals,
+                                                       max_vals=max_vals)
 
     lsst_data_gw2 = get_LSST_filt_redshifts(min_feature=best_min_GW2,
                                             max_feature=best_max_GW2,
                                             data=lsst_df,
                                             r2=r2)
 
-    lsst_GW2_ranges = [best_min_GW2, best_max_GW2]
+    lsst_filt_label = "Target: " + \
+        str(round(best_min_GW2, 2)) + "<= r_first_mag <=" + str(round(best_max_GW2, 2))
+    if r2 is not None:
+        lsst_filt_label += " and " + \
+            str(round(r2[0], 2)) + "<= r_first_mag <=" + str(round(r2[1], 2))
 
     plot_redshift_compare(thex_data=thex_Z_gw2,
                           lsst_orig=lsst_Z_orig,
                           lsst_filt=lsst_data_gw2,
-                          lsst_range=lsst_GW2_ranges,
+                          lsst_filt_label=lsst_filt_label,
                           cname=thex_class_name,
                           dataset='gW2')
 

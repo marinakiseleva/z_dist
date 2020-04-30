@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 from estimate.constants import *
 
 
-def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_range, cname, dataset):
+def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cname, dataset):
     """
     Plot redshift distributions of the subset of data versus original
     :param thex_data: THEx redshift distribution 
     :param lsst_orig: LSST redshfit distribution
     :param lsst_filt: LSST filtered to THEx
-    :param lsst_range: Range filtered to [x,y]
+    :param lsst_filt_label: Label of range filtered to 
     :param cname: Class name
     :param dataset: Name of dataset
     THEx all-features, THEx g-w2, LSST original, LSST filtered to match all-features, LSST to match g-w2
@@ -50,18 +50,16 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_range, cname, da
             bins=num_bins,
             histtype='step',
             linewidth=large_lw,
-            density=True,
+            # density=True,
             label="Target: Original")
 
-    lsst_filt_label = "Target: " + \
-        str(round(lsst_range[0], 2)) + "<= r_first_mag <=" + str(round(lsst_range[1], 2))
     ax.hist(lsst_filt,
             color=LIGHT_BLUE,
             range=(min_val, max_val),
             bins=num_bins,
             histtype='step',
             linewidth=large_lw,
-            density=True,
+            # density=True,
             label=lsst_filt_label)
     ax.hist(thex_data,
             color=DARK_BLUE,
@@ -69,13 +67,15 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_range, cname, da
             bins=num_bins,
             histtype='step',
             linewidth=small_lw,
-            density=True,
+            # density=True,
             label="THEx")
 
     ax.set_xlim(min_val, max_val)
     plt.legend(fontsize=10)
     plt.xlabel("Redshift", fontsize=10)
-    # plt.yscale('log')
+    plt.title(cname)
+    plt.yscale('log')
     cname = cname.replace("/", "_")
+
     plt.savefig(DATA_DIR + "../figures/" + cname + "_" +
                 str(dataset) + "_redshift_overlap.pdf")
