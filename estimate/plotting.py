@@ -50,16 +50,13 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
             bins=num_bins,
             histtype='step',
             linewidth=large_lw,
-            # density=True,
             label="Target: Original")
-
     ax.hist(lsst_filt,
             color=LIGHT_BLUE,
             range=(min_val, max_val),
             bins=num_bins,
             histtype='step',
             linewidth=large_lw,
-            # density=True,
             label=lsst_filt_label)
     ax.hist(thex_data,
             color=DARK_BLUE,
@@ -67,7 +64,6 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
             bins=num_bins,
             histtype='step',
             linewidth=small_lw,
-            # density=True,
             label="THEx")
 
     ax.set_xlim(min_val, max_val)
