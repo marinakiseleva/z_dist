@@ -192,14 +192,15 @@ def get_best_range(ranges, stats, p_values, accepted, lsst_data, r2s=None):
     return best_min, best_max
 
 
-def get_KS_double_fit(lsst_df, thex_data, ranges, range1):
+def get_KS_double_fit(lsst_df, thex_data, ranges, index):
     """
     Get fit when using two ranges for the feature
     """
-    # print("Current range " + str(range1))
+    print("Current range " + str(index + 1) + "/" + str(len(ranges)))
     stats = []
-    r1_min = range1[0]
-    r1_max = range1[1]
+    r1_min = ranges[index][0]
+    r1_max = ranges[index][1]
+
     for range2 in ranges:
         r2_min = range2[0]
         r2_max = range2[1]
@@ -221,7 +222,7 @@ def get_KS_double_fit(lsst_df, thex_data, ranges, range1):
     k, p, a = get_stats(l=lsst, t=thex_data)
     stats.append([k, p, a, [None, None]])
 
-    range1s = [range1 for x in range(len(ranges))]
+    range1s = [[r1_min, r1_max] for x in range(len(ranges))]
     r_stats = np.array(stats)
     best_index = get_best_range_index(ranges=range1s,
                                       stats=r_stats[:, 0],
@@ -262,6 +263,7 @@ def get_ranges(min_vals, max_vals):
         for max_range in max_vals:
             if min_range < max_range:
                 ranges.append([min_range, max_range])
+    print("Number of ranges " + str(len(ranges)))
     return ranges
 
 
@@ -323,9 +325,10 @@ def get_best_KS_double_range(lsst_df, thex_redshifts, min_vals, max_vals):
                    lsst_df,
                    thex_redshifts,
                    ranges)
+    indices = [i for i in range(len(ranges))]
     # Multithread over ranges
     overall_stats = []
-    overall_stats = pool.map(func, ranges)
+    overall_stats = pool.map(func, indices)
     pool.close()
     pool.join()
     print("Done processing...")
@@ -431,8 +434,9 @@ def main(argv):
 
     if thex_class_name == "Ia-91bg":
         # Ia-91bg r range: 16 - 26.8
-        min_vals = np.linspace(min_lsst_val, max_lsst_val, 60)
-        max_vals = np.linspace(min_lsst_val, max_lsst_val, 60)
+        n = 20
+        min_vals = np.linspace(min_lsst_val, max_lsst_val, n)
+        max_vals = np.linspace(min_lsst_val, max_lsst_val, n)
     elif thex_class_name == "II":
         # II r range: 15.5 - 31.4
         min_vals = np.linspace(min_lsst_val, 19, 40)
