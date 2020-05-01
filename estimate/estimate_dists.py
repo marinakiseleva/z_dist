@@ -122,11 +122,12 @@ def get_stats(l, t):
 
 def get_best_range_index(ranges, stats, p_values, accepted, r2s=None):
     """
-    Get index of best range, by maximizing p-value
+    Get index of best range, by maximizing p-value or meeting critical acceptance from KS test. 
     """
     max_range = 0
     best_p = 0
     best_r_index = None    # Index corresponding to largest true range
+    p_threshold = .4
     for index, p in enumerate(p_values):
         min_val, max_val = ranges[index]
         cur_range = max_val - min_val
@@ -138,14 +139,15 @@ def get_best_range_index(ranges, stats, p_values, accepted, r2s=None):
             if min_val2 is not None and max_val2 is not None:
                 cur_range2 = max_val2 - min_val2
                 cur_range += cur_range2
-        if p >= best_p and cur_range > max_range:
+        if (p >= p_threshold or accepted[index]) and cur_range >= max_range:
             max_range = cur_range
             best_p = p
             best_r_index = index
+
     return best_r_index
 
 
-def get_best_range(ranges, stats, p_values, accepted, r2s=None, log=True):
+def get_best_range(ranges, stats, p_values, accepted, r2s=None):
     """
     Get best range: maximizes p-value and range.  
     Changed from before where we only considered those with 'true' accepted values (since they pass the KS test)
@@ -157,13 +159,12 @@ def get_best_range(ranges, stats, p_values, accepted, r2s=None, log=True):
     if best_r_index is not None:
         best_min = ranges[best_r_index][0]
         best_max = ranges[best_r_index][1]
-        if log:
-            print("\n\nBest range " + str(best_min) + " - " + str(best_max))
-            print("KS: " + str(stats[best_r_index]) + "\np= " +
-                  str(p_values[best_r_index]) + "\nAccepted: " + str(accepted[best_r_index]))
+
+        print("\n\nBest range " + str(best_min) + " - " + str(best_max))
+        print("KS: " + str(stats[best_r_index]) + "\np= " +
+              str(p_values[best_r_index]) + "\nAccepted: " + str(accepted[best_r_index]))
         if r2s is not None:
-            if log:
-                print("With range 2: " + str(r2s[best_r_index]))
+            print("With range 2: " + str(r2s[best_r_index]))
             return best_min, best_max, r2s[best_r_index]
     else:
         raise ValueError("No range accepted.")
@@ -189,14 +190,9 @@ def get_KS_double_fit(lsst_df, thex_data, ranges, range1):
                                              max_feature=r2_max,
                                              data=lsst_df)
             lsst_data_filt = np.concatenate((lsst_1, lsst_2))
-
             k, p, a = get_stats(l=lsst_data_filt, t=thex_data)
-            test_region_str = str(r1_min) + " <= r1 <= " + str(r1_max) + \
-                " and " + str(r2_min) + " <= r2 <= " + str(r2_max)
-            print("Testing double " + test_region_str +
-                  " fit accepted: " + str(a) + " K: " + str(k))
-
             stats.append([k, p, a, range2])
+
     # Get stats for single range, to compare
     lsst = get_LSST_filt_redshifts(min_feature=r1_min,
                                    max_feature=r1_max,
@@ -205,29 +201,17 @@ def get_KS_double_fit(lsst_df, thex_data, ranges, range1):
     stats.append([k, p, a, [None, None]])
 
     range1s = [range1 for x in range(len(ranges))]
-
     r_stats = np.array(stats)
-
-    best_min, best_max, best_range2 = get_best_range(ranges=range1s,
-                                                     stats=r_stats[:, 0],
-                                                     p_values=r_stats[:, 1],
-                                                     accepted=r_stats[:, 2],
-                                                     r2s=ranges,
-                                                     log=False)
-
-    # Get stats for best range
-    lsst_data_filt = get_LSST_filt_redshifts(min_feature=best_min,
-                                             max_feature=best_max,
-                                             data=lsst_df)
-    if best_range2[0] is not None and best_range2[1] is not None:
-        lsst_2 = get_LSST_filt_redshifts(min_feature=best_range2[0],
-                                         max_feature=best_range2[1],
-                                         data=lsst_df)
-        lsst_data_filt = np.concatenate((lsst_data_filt, lsst_2))
-
-    k, p, a = get_stats(l=lsst_data_filt, t=thex_data)
-
-    return [k, p, a, best_range2]
+    best_index = get_best_range_index(ranges=range1s,
+                                      stats=r_stats[:, 0],
+                                      p_values=r_stats[:, 1],
+                                      accepted=r_stats[:, 2],
+                                      r2s=r_stats[:, 3])
+    if best_index is None:
+        return [100, 0, False, [None, None]]
+    else:
+        best_stats = list(r_stats[best_index, :])
+        return best_stats
 
 
 def get_KS_fit(lsst_df, thex_data, test_range):
@@ -343,7 +327,7 @@ def get_best_KS_double_range(lsst_df, thex_redshifts, min_vals, max_vals):
     #     stats.append(stat)
     #     p_values.append(p)
     #     accepted.append(a)
-        # range2s.append(r2)
+    #     range2s.append(r2)
 
     r1_min, r1_max, r2 = get_best_range(ranges, stats, p_values, accepted, range2s)
     r2_min = r2[0]
@@ -412,20 +396,22 @@ def main(argv):
     # Pull down our data
     thex_Z_AF, thex_Z_gw2 = get_thex_z_data(thex_class_name)
 
-    # lsst_class_data = lsst_df[lsst_class_name]
-    # feature_data = lsst_class_data[lsst_feature_name].values
-
-    print("Min LSST value for " + str(lsst_feature_name) +
-          " : " + str(lsst_df.iloc[:, 0].min()))
     min_lsst_val = lsst_df.iloc[:, 0].min()
+    print("Min LSST value for " + str(lsst_feature_name) +
+          " : " + str(min_lsst_val))
 
     # Set ranges of values to search over
     if thex_class_name == "Ia-91bg":
-        min_vals = np.linspace(min_lsst_val, 16.7, 20)
-        max_vals = np.linspace(18, 19, 20)
+        min_vals = np.linspace(min_lsst_val, 22, 20)
+        # max_vals = np.linspace(18.3, 18.5)
+        # min_vals = np.linspace(min_lsst_val, 26, 40)
+        max_vals = np.linspace(16, 25, 40)
+        # min_vals = np.linspace(min_lsst_val, 16.7, 20)
+        # max_vals = np.linspace(18, 19, 20)
+
     elif thex_class_name == "II":
-        min_vals = [min_lsst_val]
-        max_vals = [19.35, 17.13]
+        min_vals = np.linspace(min_lsst_val, 19, 20)
+        max_vals = np.linspace(14, 22, 20)  # [19.35, 17.13]
     elif thex_class_name == "TDE":
         min_vals = [min_lsst_val]
         max_vals = np.linspace(21.13, 21.5, 40)
@@ -457,7 +443,7 @@ def main(argv):
             str(round(best_min_AF, 2)) + "<= r_first_mag <=" + \
             str(round(best_max_AF, 2))
         if r2 is not None:
-            lsst_filt_label += " and " + \
+            lsst_filt_label += "\n and " + \
                 str(round(r2[0], 2)) + "<= r_first_mag <=" + str(round(r2[1], 2))
 
         plot_redshift_compare(thex_data=thex_Z_AF,
@@ -484,7 +470,7 @@ def main(argv):
     lsst_filt_label = "Target: " + \
         str(round(best_min_GW2, 2)) + "<= r_first_mag <=" + str(round(best_max_GW2, 2))
     if r2 is not None:
-        lsst_filt_label += " and " + \
+        lsst_filt_label += "\n and " + \
             str(round(r2[0], 2)) + "<= r_first_mag <=" + str(round(r2[1], 2))
 
     plot_redshift_compare(thex_data=thex_Z_gw2,
