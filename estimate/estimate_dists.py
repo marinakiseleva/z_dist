@@ -1,6 +1,6 @@
 # !/usr / bin / env python
 # coding: utf-8
-
+import sys
 from functools import partial
 import multiprocessing
 
@@ -358,8 +358,6 @@ def get_best_KS_double_range(lsst_df, thex_redshifts, min_vals, max_vals):
 # *_min_flux, *_min_flux_err:     minimal flux (matching faintest magnitude)
 # *_max_flux, *_max_flux_err:     maximal flux (matching peak magnitude)
 
-import sys
-
 
 def get_thex_z_data(thex_class_name):
     """
@@ -372,6 +370,22 @@ def get_thex_z_data(thex_class_name):
     thex_Z_gw2 = get_thex_class_redshifts(thex_class_name, df_g_W2)
 
     return thex_Z_AF, thex_Z_gw2
+
+
+def prep_label(r_min, r_max, r2):
+    """
+    Return label with r min and r max
+    :param r2: None or range2 as list [x, y]
+    """
+    round_to = 1
+    lsst_filt_label = "Target: " + \
+        str(round(r_min, round_to)) + "≤ r ≤" + \
+        str(round(r_max, round_to))
+    if r2 is not None:
+        lsst_filt_label += "\n and " + \
+            str(round(r2[0], round_to)) + "≤ r ≤" + \
+            str(round(r2[1], round_to))
+    return lsst_filt_label
 
 
 def main(argv):
@@ -401,34 +415,36 @@ def main(argv):
           " : " + str(min_lsst_val))
 
     # Set ranges of values to search over
-    if thex_class_name == "Ia-91bg":
-        min_vals = np.linspace(min_lsst_val, 22, 20)
-        # max_vals = np.linspace(18.3, 18.5)
-        # min_vals = np.linspace(min_lsst_val, 26, 40)
-        max_vals = np.linspace(16, 25, 40)
-        # min_vals = np.linspace(min_lsst_val, 16.7, 20)
-        # max_vals = np.linspace(18, 19, 20)
 
+    if thex_class_name == "Ia-91bg":
+        # Ia-91bg r range: 16 - 26.8
+        min_vals = np.linspace(min_lsst_val, 24, 40)
+        max_vals = np.linspace(16, 26, 40)
+        # min_vals = [min_lsst_val, 18.53]
+        # max_vals = [18.31, 18.54]
     elif thex_class_name == "II":
-        min_vals = np.linspace(min_lsst_val, 19, 20)
-        max_vals = np.linspace(14, 22, 20)  # [19.35, 17.13]
+        # II r range: 15.5 - 31.4
+        min_vals = np.linspace(min_lsst_val, 19, 40)
+        max_vals = np.linspace(16, 22, 60)  # [19.35, 17.13]
     elif thex_class_name == "TDE":
-        min_vals = [min_lsst_val]
-        max_vals = np.linspace(21.13, 21.5, 40)
+        # TDE r range: 16.6 - 30
+        min_vals = np.linspace(min_lsst_val, 20, 40)
+        max_vals = np.linspace(17, 24, 70)
     elif thex_class_name == "Ia":
-        # 14.394188986457877 - 20.050632911392405
-        # min_vals = np.linspace(15, 22, 40)  # [min_lsst_val]
-        # max_vals = np.linspace(15, 22, 40)
-        min_vals = [min_lsst_val, 14.394, 15, 18.22, 18.23, 18.24]
-        max_vals = [15.179, 17.33, 18.41, 18.42, 20.05]
+        # Ia r range: 14.3 - 29.7
+        min_vals = np.linspace(min_lsst_val, 22, 40)
+        max_vals = np.linspace(14.5, 24, 80)
+        # min_vals = [min_lsst_val, 14.394, 15, 18.22, 18.23, 18.24]
+        # max_vals = [15.179, 17.33, 18.41, 18.42, 20.05]
     else:
-        min_vals = np.linspace(min_lsst_val, 16, 20)
-        max_vals = np.linspace(15, 22, 30)
+        min_vals = np.linspace(min_lsst_val, 16, 10)
+        max_vals = np.linspace(15, 22, 10)
 
     delim = "-" * 100
     lsst_Z_orig = lsst_df["true_z"].values
 
     # All Features best params
+
     if len(thex_Z_AF) > 25:
         print(delim + "\nEstimating for all-features dataset")
         best_min_AF, best_max_AF, r2 = get_best_KS_double_range(lsst_df=lsst_df,
@@ -439,12 +455,7 @@ def main(argv):
                                                max_feature=best_max_AF,
                                                data=lsst_df,
                                                r2=r2)
-        lsst_filt_label = "Target: " + \
-            str(round(best_min_AF, 2)) + "<= r_first_mag <=" + \
-            str(round(best_max_AF, 2))
-        if r2 is not None:
-            lsst_filt_label += "\n and " + \
-                str(round(r2[0], 2)) + "<= r_first_mag <=" + str(round(r2[1], 2))
+        lsst_filt_label = prep_label(best_min_AF, best_max_AF, r2)
 
         plot_redshift_compare(thex_data=thex_Z_AF,
                               lsst_orig=lsst_Z_orig,
@@ -464,14 +475,8 @@ def main(argv):
                                             max_feature=best_max_GW2,
                                             data=lsst_df,
                                             r2=r2)
-    print("Number of samples in lsst gw2 filt")
-    print(len(lsst_data_gw2))
 
-    lsst_filt_label = "Target: " + \
-        str(round(best_min_GW2, 2)) + "<= r_first_mag <=" + str(round(best_max_GW2, 2))
-    if r2 is not None:
-        lsst_filt_label += "\n and " + \
-            str(round(r2[0], 2)) + "<= r_first_mag <=" + str(round(r2[1], 2))
+    lsst_filt_label = prep_label(best_min_GW2, best_max_GW2, r2)
 
     plot_redshift_compare(thex_data=thex_Z_gw2,
                           lsst_orig=lsst_Z_orig,

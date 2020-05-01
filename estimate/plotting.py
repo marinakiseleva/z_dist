@@ -17,6 +17,13 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
     :param dataset: Name of dataset
     THEx all-features, THEx g-w2, LSST original, LSST filtered to match all-features, LSST to match g-w2
     """
+
+    orig_count = str(len(lsst_orig))
+    filt_count = str(len(lsst_filt))
+    thex_count = str(len(thex_data))
+    print("Original number of samples in LSST: " + orig_count)
+    print("Number of samples in LSST gw-2 filt: " + filt_count)
+
     FIG_WIDTH = 6
     FIG_HEIGHT = 4
     DPI = 200
@@ -50,21 +57,21 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
             bins=num_bins,
             histtype='step',
             linewidth=large_lw,
-            label="Target: Original")
+            label="Target: Original (Count: " + orig_count + ")")
     ax.hist(lsst_filt,
             color=LIGHT_BLUE,
             range=(min_val, max_val),
             bins=num_bins,
             histtype='step',
             linewidth=large_lw,
-            label=lsst_filt_label)
+            label=lsst_filt_label + " (Count: " + filt_count + ")")
     ax.hist(thex_data,
             color=DARK_BLUE,
             range=(min_val, max_val),
             bins=num_bins,
             histtype='step',
             linewidth=small_lw,
-            label="THEx")
+            label="THEx (Count: " + thex_count + ")")
 
     ax.set_xlim(min_val, max_val)
     plt.legend(fontsize=10)
