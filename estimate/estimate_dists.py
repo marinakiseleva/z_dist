@@ -196,7 +196,7 @@ def get_KS_double_fit(lsst_df, thex_data, ranges, index):
     """
     Get fit when using two ranges for the feature
     """
-    print("Current range " + str(index + 1) + "/" + str(len(ranges)))
+    print("Current range " + str(index + 1) + "/" + str(len(ranges)), flush=True)
     stats = []
     r1_min = ranges[index][0]
     r1_max = ranges[index][1]
@@ -434,7 +434,7 @@ def main(argv):
 
     if thex_class_name == "Ia-91bg":
         # Ia-91bg r range: 16 - 26.8
-        n = 20
+        n = 40
         min_vals = np.linspace(min_lsst_val, max_lsst_val, n)
         max_vals = np.linspace(min_lsst_val, max_lsst_val, n)
     elif thex_class_name == "II":
@@ -443,8 +443,11 @@ def main(argv):
         max_vals = np.linspace(16, 22, 60)  # [19.35, 17.13]
     elif thex_class_name == "TDE":
         # TDE r range: 16.6 - 30
-        min_vals = [min_lsst_val]  # np.linspace(min_lsst_val, 20, 40)
-        max_vals = np.linspace(21, 22, 30)
+        # min_vals = [min_lsst_val]  # np.linspace(min_lsst_val, 20, 40)
+        # max_vals = np.linspace(21, 22, 30)
+        n = 40
+        min_vals = np.linspace(min_lsst_val, max_lsst_val, n)
+        max_vals = np.linspace(min_lsst_val, max_lsst_val, n)
     elif thex_class_name == "Ia":
         # Ia r range: 14.3 - 29.7
         num_samples = 20
@@ -458,8 +461,9 @@ def main(argv):
         max_vals = np.concatenate((max_vals1, max_vals2))
 
     else:
-        min_vals = np.linspace(min_lsst_val, 16, 10)
-        max_vals = np.linspace(15, 22, 10)
+        n = 40
+        min_vals = np.linspace(min_lsst_val, max_lsst_val, n)
+        max_vals = np.linspace(min_lsst_val, max_lsst_val, n)
 
     delim = "-" * 100
     lsst_Z_orig = lsst_df["true_z"].values
