@@ -5,81 +5,13 @@ from functools import partial
 import multiprocessing
 
 import pickle
-import pandas as pd
 import numpy as np
 from scipy import stats
 import math
 
 from estimate.constants import *
 from estimate.plotting import *
-
-
-def get_data(name):
-    """
-    Pull down project data, one of two types:
-    all-features-dataset: 'all_features'
-    g_W2-dataset: 'g_W2'
-    """
-    X = pd.read_csv(DATA_DIR + name + '_X.csv')
-    X.drop(['Unnamed: 0'], axis=1, inplace=True)
-    y = pd.read_csv(DATA_DIR + name + '_y.csv')
-    y.drop(['Unnamed: 0'], axis=1, inplace=True)
-    df = pd.concat([X, y], axis=1)
-    return df
-
-
-def convert_str_to_list(input_string):
-    """
-    Convert string to list
-    """
-    l = input_string.split(",")
-    return [item.strip(' ') for item in l]
-
-
-def get_thex_class_data(class_name, data):
-    """
-    Filter DataFrame to have only data with label class_name
-    """
-    keep_indices = []
-    for index, row in data.iterrows():
-        labels = convert_str_to_list(row[TARGET_LABEL])
-        if class_name in labels:
-            keep_indices.append(index)
-
-    return data.loc[keep_indices, :]
-
-
-def get_thex_z_data(class_name):
-    """
-    Pull down our data, filter on class name
-    """
-    df_AF = get_data(name='all_features')
-    df_g_W2 = get_data(name='g_W2')
-
-    thex_AF_Z = get_thex_class_data(class_name, df_AF)['redshift'].values
-    thex_gw2_Z = get_thex_class_data(class_name, df_g_W2)['redshift'].values
-
-    return thex_AF_Z, thex_gw2_Z
-
-
-def get_lsst_class_data(class_name, feature_name, data):
-    """
-    Filter LSST data to only those samples with this class name, and valid values for feature name. Return as Pandas DataFrame with first column as feature values and second column as z
-    """
-    lsst_class_data = data[class_name]
-    feature_data = lsst_class_data[feature_name]
-    indices = []
-    for index, f in enumerate(feature_data):
-        if ~np.isnan(f):
-            indices.append(index)
-
-    valid_mags = np.take(lsst_class_data[feature_name], indices)
-    valid_Z = np.take(lsst_class_data['true_z'], indices)
-
-    df = pd.DataFrame(valid_mags, columns=[feature_name])
-    df['true_z'] = valid_Z.tolist()
-
-    return df
+from estimate.get_data import *
 
 
 def get_LSST_filt_redshifts(min_feature, max_feature, data, r2=None):
@@ -117,13 +49,11 @@ def get_stats(l, t):
     alpha = 1.95
     D_critical = alpha * math.sqrt((t_size + l_size) / (t_size * l_size))
 
-    acceptable = False
+    passed = False
     if KS_statistic < D_critical:
-        # print("\nAccepted " + str(KS_statistic) + " for D critical " +
-        #       str(D_critical) + "; P-value: " + str(p_value))
-        acceptable = True
+        passed = True
 
-    return [KS_statistic, p_value, acceptable]
+    return [KS_statistic, p_value, passed]
 
 
 def get_count(lsst_data, min_val, max_val, r2_range):
@@ -140,28 +70,22 @@ def get_count(lsst_data, min_val, max_val, r2_range):
 
 def get_best_range_index(ranges, stats, p_values, accepted, lsst_data, r2s=None):
     """
-    Get index of best range (with most samples), by maximizing p-value or meeting critical acceptance from KS test. 
+    Get index of best range (with most samples) that meets critical acceptance from KS test (KS_statistic < D_critical). 
     """
     max_count = 0
-    best_p = 0
     best_r_index = None    # Index corresponding to largest true range
-    p_threshold = .4
-    for index, p in enumerate(p_values):
+    for index, a in enumerate(accepted):
         min_val, max_val = ranges[index]
-        cur_range = max_val - min_val
         r2_range = None
         if r2s is not None:
-            # Add in range of range2
             min_val2, max_val2 = r2s[index]
-            # Values are None when using no double range, (we run no double range to
-            # compare to double ranges)
+            # Values are None when using no second range
             if min_val2 is not None and max_val2 is not None:
                 r2_range = [min_val2, max_val2]
 
         sample_count = get_count(lsst_data, min_val, max_val, r2_range)
-        if (p >= p_threshold or accepted[index]) and sample_count >= max_count:
+        if a and sample_count >= max_count:
             max_count = sample_count
-            best_p = p
             best_r_index = index
 
     return best_r_index
@@ -169,8 +93,7 @@ def get_best_range_index(ranges, stats, p_values, accepted, lsst_data, r2s=None)
 
 def get_best_range(ranges, stats, p_values, accepted, lsst_data, r2s=None):
     """
-    Get best range: maximizes p-value and range.  
-    Changed from before where we only considered those with 'true' accepted values (since they pass the KS test)
+    Get best range  
     :param stats: KS test statistics (per range)
     :param p_values: P values (per range)
     :param accepted: Booleans of acceptance (< D_critical) (per range)
@@ -269,7 +192,7 @@ def get_ranges(min_vals, max_vals):
 
 def get_best_KS_range(lsst_df, thex_redshifts, min_vals, max_vals):
     """
-    Find min and max range for feature that gets LSST and THEx redshift distributions for this class as close together, as measured by RMSE.
+    Find min and max range for feature that gets LSST and THEx redshift distributions for this class as close together.
     :param lsst_data: LSST DataFrame of redshift and feature values for class
     :param thex_redshifts: List of THEx redshifts
     """
@@ -312,7 +235,7 @@ def get_best_KS_range(lsst_df, thex_redshifts, min_vals, max_vals):
 
 def get_best_KS_double_range(lsst_df, thex_redshifts, min_vals, max_vals):
     """
-    Same as above but can use 2 ranges.
+    Same as get_best_KS_range but can use 2 ranges.
     :param lsst_data: LSST DataFrame of redshift and feature values for class
     :param thex_redshifts: List of THEx redshifts
     """
@@ -385,15 +308,17 @@ def get_best_KS_double_range(lsst_df, thex_redshifts, min_vals, max_vals):
 # *_max_flux, *_max_flux_err:     maximal flux (matching peak magnitude)
 
 
-def prep_label(r_min, r_max, r2):
+def prep_label(r_min, r_max, min_lsst_val, r2):
     """
     Return label with r min and r max
     :param r2: None or range2 as list [x, y]
     """
     round_to = 1
-    lsst_filt_label = "Target: " + \
-        str(round(r_min, round_to)) + "≤ r ≤" + \
-        str(round(r_max, round_to))
+    lsst_filt_label = "Target: "
+    if r_min != min_lsst_val:
+        lsst_filt_label += str(round(r_min, round_to)) + "≤ "
+
+    lsst_filt_label += "r ≤" + str(round(r_max, round_to))
     if r2 is not None:
         lsst_filt_label += "\n and " + \
             str(round(r2[0], round_to)) + "≤ r ≤" + \
@@ -434,31 +359,28 @@ def main(argv):
 
     if thex_class_name == "Ia-91bg":
         # Ia-91bg r range: 16 - 26.8
-        n = 40
-        min_vals = np.linspace(min_lsst_val, max_lsst_val, n)
-        max_vals = np.linspace(min_lsst_val, max_lsst_val, n)
+        n = 80
+        min_vals = np.linspace(min_lsst_val, 16.1, n)
+        max_vals = np.linspace(18, 20, n)
     elif thex_class_name == "II":
         # II r range: 15.5 - 31.4
-        min_vals = np.linspace(min_lsst_val, 19, 40)
-        max_vals = np.linspace(16, 22, 60)  # [19.35, 17.13]
+        # min_vals = [min_lsst_val, 18.3333333333333, 15.52083853838118]
+        # max_vals = [17.9310344827586, 19.3103448275862, 19.3157894736842]
+        min1 = np.linspace(min_lsst_val, 15.6, 10)
+        max1 = np.linspace(17.5, 18.5, 10)
+
+        min2 = np.linspace(18, 18.8, 10)
+        max2 = np.linspace(18.5, 19.2, 10)
+        min_vals = np.concatenate((min1, min2))
+        max_vals = np.concatenate((max1, max2))
     elif thex_class_name == "TDE":
         # TDE r range: 16.6 - 30
-        # min_vals = [min_lsst_val]  # np.linspace(min_lsst_val, 20, 40)
-        # max_vals = np.linspace(21, 22, 30)
-        n = 40
-        min_vals = np.linspace(min_lsst_val, max_lsst_val, n)
-        max_vals = np.linspace(min_lsst_val, max_lsst_val, n)
+        min_vals = [min_lsst_val]
+        max_vals = [21.1724137931034]
     elif thex_class_name == "Ia":
         # Ia r range: 14.3 - 29.7
-        num_samples = 20
-        min_vals1 = np.linspace(min_lsst_val, 14.4, num_samples)
-        min_vals2 = np.linspace(24, 26, num_samples)
-
-        max_vals2 = np.linspace(18, 20.6, num_samples)
-        max_vals1 = np.linspace(25, 27, num_samples)
-
-        min_vals = np.concatenate((min_vals1, min_vals2))
-        max_vals = np.concatenate((max_vals1, max_vals2))
+        min_vals = [min_lsst_val, 18.21428571, 14.3941889864578, 25.4111111111111]
+        max_vals = [17.4, 18.4, 19.5444444444444, 26.6666666666666]
 
     else:
         n = 40
@@ -471,16 +393,17 @@ def main(argv):
     # All Features best params
 
     if len(thex_Z_AF) > 25:
+
         print(delim + "\nEstimating for all-features dataset")
-        best_min_AF, best_max_AF, r2 = get_best_KS_double_range(lsst_df=lsst_df,
-                                                                thex_redshifts=thex_Z_AF,
-                                                                min_vals=min_vals,
-                                                                max_vals=max_vals)
+        best_min_AF, best_max_AF, r2 = get_best_KS_range(lsst_df=lsst_df,
+                                                         thex_redshifts=thex_Z_AF,
+                                                         min_vals=min_vals,
+                                                         max_vals=max_vals)
         lsst_data_AF = get_LSST_filt_redshifts(min_feature=best_min_AF,
                                                max_feature=best_max_AF,
                                                data=lsst_df,
                                                r2=r2)
-        lsst_filt_label = prep_label(best_min_AF, best_max_AF, r2)
+        lsst_filt_label = prep_label(best_min_AF, best_max_AF, min_lsst_val, r2)
 
         plot_redshift_compare(thex_data=thex_Z_AF,
                               lsst_orig=lsst_Z_orig,
@@ -491,17 +414,17 @@ def main(argv):
 
     # g-W2 dataset best params
     print(delim + "\nEstimating for g-W2-dataset")
-    best_min_GW2, best_max_GW2, r2 = get_best_KS_double_range(lsst_df=lsst_df,
-                                                              thex_redshifts=thex_Z_gw2,
-                                                              min_vals=min_vals,
-                                                              max_vals=max_vals)
+    best_min_GW2, best_max_GW2, r2 = get_best_KS_range(lsst_df=lsst_df,
+                                                       thex_redshifts=thex_Z_gw2,
+                                                       min_vals=min_vals,
+                                                       max_vals=max_vals)
 
     lsst_data_gw2 = get_LSST_filt_redshifts(min_feature=best_min_GW2,
                                             max_feature=best_max_GW2,
                                             data=lsst_df,
                                             r2=r2)
 
-    lsst_filt_label = prep_label(best_min_GW2, best_max_GW2, r2)
+    lsst_filt_label = prep_label(best_min_GW2, best_max_GW2, min_lsst_val, r2)
 
     plot_redshift_compare(thex_data=thex_Z_gw2,
                           lsst_orig=lsst_Z_orig,
