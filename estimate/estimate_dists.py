@@ -364,15 +364,16 @@ def main(argv):
         max_vals = np.linspace(18, 20, n)
     elif thex_class_name == "II":
         # II r range: 15.5 - 31.4
-        # min_vals = [min_lsst_val, 18.3333333333333, 15.52083853838118]
-        # max_vals = [17.9310344827586, 19.3103448275862, 19.3157894736842]
-        min1 = np.linspace(min_lsst_val, 15.6, 10)
-        max1 = np.linspace(17.5, 18.5, 10)
+        n = 100
+        min_vals = np.linspace(min_lsst_val, max_lsst_val, n)
+        max_vals = np.linspace(min_lsst_val, max_lsst_val, n)
+        # min1 = np.linspace(min_lsst_val, 15.6, 10)
+        # max1 = np.linspace(17.5, 18.5, 10)
 
-        min2 = np.linspace(18, 18.8, 10)
-        max2 = np.linspace(18.5, 19.2, 10)
-        min_vals = np.concatenate((min1, min2))
-        max_vals = np.concatenate((max1, max2))
+        # min2 = np.linspace(18, 18.8, 10)
+        # max2 = np.linspace(18.5, 19.2, 10)
+        # min_vals = np.concatenate((min1, min2))
+        # max_vals = np.concatenate((max1, max2))
     elif thex_class_name == "TDE":
         # TDE r range: 16.6 - 30
         min_vals = [min_lsst_val]
