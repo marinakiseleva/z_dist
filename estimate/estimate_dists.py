@@ -398,7 +398,7 @@ def main(argv):
     if len(thex_Z_AF) > 25:
 
         print(delim + "\nEstimating for all-features dataset")
-        best_min_AF, best_max_AF, r2 = get_best_double_KS_range(lsst_df=lsst_df,
+        best_min_AF, best_max_AF, r2 = get_best_KS_double_range(lsst_df=lsst_df,
                                                                 thex_redshifts=thex_Z_AF,
                                                                 min_vals=min_vals,
                                                                 max_vals=max_vals)
@@ -417,7 +417,7 @@ def main(argv):
 
     # g-W2 dataset best params
     print(delim + "\nEstimating for g-W2-dataset")
-    best_min_GW2, best_max_GW2, r2 = get_best_double_KS_range(lsst_df=lsst_df,
+    best_min_GW2, best_max_GW2, r2 = get_best_KS_double_range(lsst_df=lsst_df,
                                                               thex_redshifts=thex_Z_gw2,
                                                               min_vals=min_vals,
                                                               max_vals=max_vals)
