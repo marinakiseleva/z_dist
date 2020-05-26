@@ -54,6 +54,7 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
     ax.hist(lsst_orig,
             color=LIGHT_GREEN,
             range=(min_val, max_val),
+            density=True,
             bins=num_bins,
             histtype='step',
             linewidth=large_lw,
@@ -61,6 +62,7 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
     ax.hist(lsst_filt,
             color=LIGHT_BLUE,
             range=(min_val, max_val),
+            density=True,
             bins=num_bins,
             histtype='step',
             linewidth=large_lw,
@@ -68,6 +70,7 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
     ax.hist(thex_data,
             color=DARK_BLUE,
             range=(min_val, max_val),
+            density=True,
             bins=num_bins,
             histtype='step',
             linewidth=small_lw,
@@ -82,3 +85,26 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
 
     plt.savefig(DATA_DIR + "../figures/" + cname + "_" +
                 str(dataset) + "_redshift_overlap.pdf")
+
+
+def plot_cumsum(t, l, class_name):
+    bins = np.linspace(0, 1.2, 100)
+    t_length = len(t)
+    l_length = len(l)
+    l, binsl = np.histogram(l, bins=bins)
+    t, binst = np.histogram(t, bins=bins)
+    l = np.cumsum(l)
+    t = np.cumsum(t)
+    t = t / t_length
+    l = l / l_length
+    fig, ax = plt.subplots(tight_layout=True,
+                           sharex=True,
+                           sharey=True)
+    ax.plot(bins[:-1], l, c='blue', label="LSST")
+    ax.plot(bins[:-1], t, c='green', label="THEx")
+    ax.legend()
+    plt.ylabel("CDF")
+    plt.xlabel("redshift")
+    plt.title("CDFs for filtered " + class_name)
+    plt.savefig(DATA_DIR + "../figures/" + class_name + "_" + "CDFs.pdf")
+    plt.show()

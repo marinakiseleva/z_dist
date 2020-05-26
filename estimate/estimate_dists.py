@@ -37,6 +37,7 @@ def get_LSST_filt_redshifts(min_feature, max_feature, data, r2=None):
 def get_stats(l, t):
     """
     Get KS test statistic, p-value, and where its accepted based on critical value between 2 datasets
+
     """
     if len(l) == 0:
         return 100, 0, False
@@ -50,9 +51,10 @@ def get_stats(l, t):
     D_critical = alpha * math.sqrt((t_size + l_size) / (t_size * l_size))
 
     passed = False
-    if KS_statistic < D_critical:
+    if KS_statistic <= D_critical:
         passed = True
 
+    # Return KS stat, p-value for
     return [KS_statistic, p_value, passed]
 
 
@@ -364,24 +366,24 @@ def main(argv):
         max_vals = np.linspace(18, 20, n)
     elif thex_class_name == "II":
         # II r range: 15.5 - 31.4
-        n = 100
-        min_vals = np.linspace(min_lsst_val, max_lsst_val, n)
-        max_vals = np.linspace(min_lsst_val, max_lsst_val, n)
-        # min1 = np.linspace(min_lsst_val, 15.6, 10)
-        # max1 = np.linspace(17.5, 18.5, 10)
-
-        # min2 = np.linspace(18, 18.8, 10)
-        # max2 = np.linspace(18.5, 19.2, 10)
-        # min_vals = np.concatenate((min1, min2))
-        # max_vals = np.concatenate((max1, max2))
+        # min_vals = np.array([min_lsst_val])
+        # max_vals = np.array([19.31812749881689, 17.07244148433803, 19.5])
+        min1 = np.array([min_lsst_val])
+        max1 = np.linspace(18, 20, 400)
+        min2 = np.linspace(18, 20, 400)
+        max2 = np.linspace(20, 22, 400)
+        min_vals = np.concatenate((min1, min2))
+        max_vals = np.concatenate((max1, max2))
     elif thex_class_name == "TDE":
         # TDE r range: 16.6 - 30
-        min_vals = [min_lsst_val]
-        max_vals = [21.1724137931034]
+        min_vals = np.array([min_lsst_val])
+        max_vals = np.linspace(21, 22, 80)
     elif thex_class_name == "Ia":
         # Ia r range: 14.3 - 29.7
-        min_vals = [min_lsst_val, 18.21428571, 14.3941889864578, 25.4111111111111]
-        max_vals = [17.4, 18.4, 19.5444444444444, 26.6666666666666]
+        # min_vals = np.array([min_lsst_val])
+        min_vals = np.concatenate((np.array([min_lsst_val]), np.linspace(21, 22, 200)))
+        # max_vals = np.linspace(15, 17, 90)
+        max_vals = np.concatenate((np.linspace(19, 20, 100), np.linspace(21, 22, 200)))
 
     else:
         n = 40
@@ -396,10 +398,10 @@ def main(argv):
     if len(thex_Z_AF) > 25:
 
         print(delim + "\nEstimating for all-features dataset")
-        best_min_AF, best_max_AF, r2 = get_best_KS_range(lsst_df=lsst_df,
-                                                         thex_redshifts=thex_Z_AF,
-                                                         min_vals=min_vals,
-                                                         max_vals=max_vals)
+        best_min_AF, best_max_AF, r2 = get_best_double_KS_range(lsst_df=lsst_df,
+                                                                thex_redshifts=thex_Z_AF,
+                                                                min_vals=min_vals,
+                                                                max_vals=max_vals)
         lsst_data_AF = get_LSST_filt_redshifts(min_feature=best_min_AF,
                                                max_feature=best_max_AF,
                                                data=lsst_df,
@@ -415,10 +417,10 @@ def main(argv):
 
     # g-W2 dataset best params
     print(delim + "\nEstimating for g-W2-dataset")
-    best_min_GW2, best_max_GW2, r2 = get_best_KS_range(lsst_df=lsst_df,
-                                                       thex_redshifts=thex_Z_gw2,
-                                                       min_vals=min_vals,
-                                                       max_vals=max_vals)
+    best_min_GW2, best_max_GW2, r2 = get_best_double_KS_range(lsst_df=lsst_df,
+                                                              thex_redshifts=thex_Z_gw2,
+                                                              min_vals=min_vals,
+                                                              max_vals=max_vals)
 
     lsst_data_gw2 = get_LSST_filt_redshifts(min_feature=best_min_GW2,
                                             max_feature=best_max_GW2,
