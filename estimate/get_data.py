@@ -54,6 +54,23 @@ def get_thex_z_data(class_name):
     return thex_AF_Z, thex_gw2_Z
 
 
+# keys in lsst-sims.pk are:
+# obj_id:                         light curve id
+# true_z, photo_z:                transient redshift and host photo-z
+
+# These columns are calculated for each band (* = u, g, r, i, z, y)
+
+# *_first_mjd:                    epoch of initial detection ('first epoch')
+# *_first_snr:                    first-epoch SNR
+# *_min_snr, *_max_snr:           minimal and maximal SNR of the light curve
+# *_first_mag, *_first_mag_err:   first-epoch magnitude and error
+# *_min_mag, *_min_mag_err:       faintest magnitude and error
+# *_max_mag, *_max_mag_err:       peak or brighest magnitude and error
+# *_first_flux, *_first_flux_err: first-epoch physical flux and error
+# *_min_flux, *_min_flux_err:     minimal flux (matching faintest magnitude)
+# *_max_flux, *_max_flux_err:     maximal flux (matching peak magnitude)
+
+
 def get_lsst_class_data(class_name, feature_name, data):
     """
     Filter LSST data to only those samples with this class name, and valid values for feature name. Return as Pandas DataFrame with first column as feature values and second column as z

@@ -80,7 +80,7 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
     plt.legend(fontsize=10)
     plt.xlabel("Redshift", fontsize=10)
     plt.title(cname)
-    plt.yscale('log')
+    # plt.yscale('log')
     cname = cname.replace("/", "_")
 
     plt.savefig(DATA_DIR + "../figures/" + cname + "_" +
