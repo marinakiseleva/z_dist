@@ -2,7 +2,7 @@
 # coding: utf-8
 import pandas as pd
 import numpy as np
-
+import pickle
 from estimate.constants import *
 
 
@@ -70,11 +70,20 @@ def get_thex_z_data(class_name):
 # *_min_flux, *_min_flux_err:     minimal flux (matching faintest magnitude)
 # *_max_flux, *_max_flux_err:     maximal flux (matching peak magnitude)
 
+def get_lsst_data():
+    """
+    Pull down LSST data
+    """
+    with open(DATA_DIR + 'lsst-sims.pk', 'rb') as f:
+        data = pickle.load(f)
+    return data
 
-def get_lsst_class_data(class_name, feature_name, data):
+
+def get_lsst_class_data(class_name, feature_name):
     """
     Filter LSST data to only those samples with this class name, and valid values for feature name. Return as Pandas DataFrame with first column as feature values and second column as z
     """
+    data = get_lsst_data()
     lsst_class_data = data[class_name]
     feature_data = lsst_class_data[feature_name]
     indices = []

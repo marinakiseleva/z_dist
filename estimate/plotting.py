@@ -6,6 +6,36 @@ import matplotlib.pyplot as plt
 from estimate.constants import *
 
 
+def plot_Z_ranges(title, data, LSST_label, file_title):
+    """
+    Plot 3 datasets, stored in data map: original THEx data, original LSST, and filtered LSST. All as redshift distributions for a certain class.
+    """
+    FIG_WIDTH = 6
+    FIG_HEIGHT = 4
+    DPI = 200
+    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT), dpi=DPI,
+                           tight_layout=True, sharex=True, sharey=True)
+    Z_bins = np.linspace(0, 1.1, 50)
+    LIGHT_RED = "#ffb3b3"
+    LIGHT_BLUE = "#99ccff"
+    LIGHT_GREEN = "#99ffe6"
+    DARK_BLUE = "#0000b3"
+    ax.hist(data['THEx'], bins=Z_bins, density=True,
+            label="THEx",  fill=False, edgecolor=DARK_BLUE)
+    ax.hist(data['LSST_orig'], bins=Z_bins, density=True,
+            label="Original LSST",  fill=False, edgecolor=LIGHT_GREEN)
+    ax.hist(data['LSST_filt'], bins=Z_bins, density=True,
+            label=LSST_label,  fill=False, edgecolor=LIGHT_BLUE)
+
+    plt.title(title)
+    xlabel = "Redshift"
+    plt.xlabel(xlabel)
+    plt.ylabel("Density")
+    plt.legend()
+    plt.savefig("../figures/analysis/" + file_title + ".png")
+    plt.show()
+
+
 def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cname, dataset):
     """
     Plot redshift distributions of the subset of data versus original
