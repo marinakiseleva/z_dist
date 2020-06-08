@@ -13,7 +13,6 @@ from estimate.constants import *
 def get_LSST_filt_redshifts(min_feature, max_feature, data, r2=None):
     """
     Get redshift values as Numpy array, for feature values in the range [min_feature, max_feature]. First column is features.
-    :param feature_name: Name of feature to filter on
     :param min_feature: Minimum acceptable value of feature
     :param max_feature: Maximum acceptable value of feature
     :param data: LSST data as DataFrame with feature and redshift column
