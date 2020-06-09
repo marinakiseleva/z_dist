@@ -70,5 +70,7 @@ def main(argv):
     file_title = "range_matching_" + lsst_class_name + ".png"
     plot_Z_ranges(lsst_class_name, datas, LSST_label, file_title)
 
+    return prop_kept
+
 if __name__ == "__main__":
     main(sys.argv)
