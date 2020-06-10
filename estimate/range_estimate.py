@@ -45,6 +45,11 @@ def main(argv):
     lsst_class_name = argv[2]
     max_feat_val = argv[3]
 
+    if len(argv) == 5:
+        dataset = argv[4]
+    else:
+        dataset = 'g-W2'
+
     lsst_feature_name = "r_first_mag"
 
     LSST_df = get_lsst_class_data(class_name=lsst_class_name,
@@ -52,6 +57,11 @@ def main(argv):
 
     # Pull down our data
     thex_Z_AF, thex_Z_gw2 = get_thex_z_data(thex_class_name)
+    # default to g-w2 unless all-features is passed in
+    if dataset == 'all-features':
+        thex_data = thex_Z_AF
+    else:
+        thex_data = thex_Z_gw2
 
     min_feat_val = None
     # max_feat_val = 23
@@ -63,11 +73,12 @@ def main(argv):
     LSST_label = "Filtered LSST: " + \
         "r mag \N{LESS-THAN OR EQUAL TO}" + \
         str(max_feat_val) + ", " + str(prop_kept) + "%"
-    datas = {"THEx": thex_Z_gw2,
+
+    datas = {"THEx": thex_data,
              "LSST_orig": LSST_df[LSST_Z_COL],
              "LSST_filt": lsst_Z_ranged}
 
-    file_title = "range_matching_" + lsst_class_name + ".png"
+    file_title = "range_matching_" + dataset + "_" + lsst_class_name + ".png"
     plot_Z_ranges(lsst_class_name, datas, LSST_label, file_title)
 
     return prop_kept

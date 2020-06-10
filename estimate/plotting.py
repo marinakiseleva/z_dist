@@ -32,7 +32,7 @@ def plot_Z_ranges(title, data, LSST_label, file_title):
     plt.xlabel(xlabel)
     plt.ylabel("Density")
     plt.legend()
-    plt.savefig("../figures/analysis/" + file_title + ".png")
+    plt.savefig("../figures/analysis/" + file_title)
     plt.show()
 
 
