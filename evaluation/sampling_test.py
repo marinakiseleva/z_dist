@@ -99,7 +99,10 @@ def get_THEx_sampled_data(class_name, max_rmag, num_samples):
             new_data.append(f_df)
     df = pd.concat(new_data)
     df = df.reset_index(drop=True)
-    lsst_label = "LSST (" + feature_name + " <= " + str(max_rmag) + ")"
+    if max_rmag is not None:
+        lsst_label = "LSST (" + feature_name + " <= " + str(max_rmag) + ")"
+    else:
+        lsst_label = "LSST"
     thex_label = "THEx (LSST sample)"
 
     class_count = df.shape[0]
