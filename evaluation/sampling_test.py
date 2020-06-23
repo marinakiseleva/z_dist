@@ -17,19 +17,6 @@ ordered_mags = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
                 "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag']
 
 
-def drop_joint(df1, df2):
-    """
-    Drop rows with the same values in the two pandas dataframes from df1
-    """
-    orig_df = df1.copy()
-    drop_indices = []
-    for index, row in orig_df.iterrows():
-        for index2, row2, in df2.iterrows():
-            if (row.values == row2.values).all():
-                drop_indices.append(index)
-    return drop_indices
-
-
 def get_training_data(lsst_sampled_X, orig_sampled_X, all_X, all_y):
     """
     Return sampled X and y, with NO values in 'avoid' DataFrame
@@ -86,7 +73,7 @@ def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test):
 
     sorted_columns = list(model.X)
 
-    model.num_runs = 2
+    model.num_runs = 10
     model.num_folds = None
     LSST_results = []
     orig_results = []
@@ -241,11 +228,11 @@ def main():
                        )
     sorted_cols = list(model.X)
 
-    print("original size of training set " + str(model.X.shape))
+    print("Original size of training set " + str(model.X.shape[0]))
     # Update training data to remove testing sets
     train_X, train_y = get_training_data(
         lsst_sampled_X, orig_sampled_X, model.X, model.y)
-    print("new size of training set " + str(train_X.shape))
+    print("New size of training set " + str(train_X.shape[0]))
     model.X = train_X[sorted_cols]
     model.y = train_y
 
