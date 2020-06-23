@@ -1,5 +1,5 @@
 """
-Determine if the model does better or worse with a different distribution of Ia events, that more strongly resemble the PLASTICCS catalog filtered to a certain range (Ia events with initial r mag <=23 )
+Determine if the model does any better or worse with a different distribution of transient events.
 """
 import os
 import random
@@ -17,6 +17,19 @@ ordered_mags = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
                 "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag']
 
 
+def drop_joint(df1, df2):
+    """
+    Drop rows with the same values in the two pandas dataframes from df1
+    """
+    orig_df = df1.copy()
+    drop_indices = []
+    for index, row in orig_df.iterrows():
+        for index2, row2, in df2.iterrows():
+            if (row.values == row2.values).all():
+                drop_indices.append(index)
+    return drop_indices
+
+
 def get_training_data(lsst_sampled_X, orig_sampled_X, all_X, all_y):
     """
     Return sampled X and y, with NO values in 'avoid' DataFrame
@@ -25,37 +38,27 @@ def get_training_data(lsst_sampled_X, orig_sampled_X, all_X, all_y):
     :param all_X: All X data in initialized model
     :param all_y: All y data in initialized model
     """
-    training_X = all_X.copy()
-    training_y = all_y.copy()
+    X_train = all_X.copy()
+    y_train = all_y.copy()
 
     # Reorder columns so they are consistent
     lsst_sampled_X = lsst_sampled_X[ordered_mags]
     orig_sampled_X = orig_sampled_X[ordered_mags]
-    training_X = training_X[ordered_mags]
+    X_train = X_train[ordered_mags]
 
-    drop_indices = []
+    new_df = pd.merge(X_train.astype('float32'), lsst_sampled_X.astype('float32'),  how='inner',
+                      on=list(X_train), left_index=True)
+    drop_indices = new_df.index.tolist()
 
-    for index, row in lsst_sampled_X.iterrows():
-        # Drop if in LSST testing data
-        temp = pd.DataFrame((training_X == row).all(1), columns=['match'])
-        matching_indices = temp[temp['match'] == True].index
-        if len(matching_indices) > 0:
-            drop_indices.append(matching_indices[0])
-
-    for index, row in orig_sampled_X.iterrows():
-        # drop if  in random testing data
-        temp = pd.DataFrame((training_X == row).all(1), columns=['match'])
-        matching_indices = temp[temp['match'] == True].index
-        if len(matching_indices) > 0:
-            drop_indices.append(matching_indices[0])
+    new_df = pd.merge(X_train.astype('float32'), orig_sampled_X.astype('float32'),  how='inner',
+                      on=list(X_train), left_index=True)
+    drop_indices += new_df.index.tolist()
 
     # Drop testing data from training
-    training_X.drop(index=drop_indices, inplace=True)
-    training_X.reset_index(drop=True, inplace=True)
-    training_y.drop(index=drop_indices, inplace=True)
-    training_y.reset_index(drop=True, inplace=True)
+    X_train = X_train.drop(index=drop_indices).reset_index(drop=True)
+    y_train = y_train.drop(index=drop_indices).reset_index(drop=True)
 
-    return training_X, training_y
+    return X_train, y_train
 
 
 def get_source_target(data):
@@ -71,7 +74,7 @@ def get_source_target(data):
 
 def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test):
     """
-    Train on model data and test on passed in data for 10 trials, and visualize results.
+    Train on model data and test on passed in data for X trials, and visualize results.
     """
     # Initialize output directory
     exp = str(random.randint(1, 10**10))
@@ -81,19 +84,22 @@ def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test):
     model.dir = output_dir + "/training"
     os.mkdir(model.dir)
 
+    sorted_columns = list(model.X)
+
     model.num_runs = 2
+    model.num_folds = None
     LSST_results = []
     orig_results = []
     for i in range(model.num_runs):
         # Randomly sample 90% of training data for training
         X_train = model.X.sample(frac=0.9)
         y_train = model.y.iloc[X_train.index].reset_index(drop=True)
-        X_train = X_train.reset_index(drop=True)
+        X_train.reset_index(drop=True, inplace=True)
 
         # Ensure all X sets have columns in same order
-        LSST_X_test = LSST_X_test[ordered_mags]
-        orig_X_test = orig_X_test[ordered_mags]
-        X_train = X_train[ordered_mags]
+        LSST_X_test = LSST_X_test[sorted_columns]
+        orig_X_test = orig_X_test[sorted_columns]
+        X_train = X_train[sorted_columns]
 
         # Train model on sampled set
         model.train_model(X_train, y_train)
@@ -125,15 +131,13 @@ def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test):
     model.visualize_performance()
 
 
-def get_THEx_sampled_data(class_name, max_rmag, num_samples):
+def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset):
     """
     Sample THEx class data to have the same redshift distribution as LSST cut to a certain r_first_mag
     """
     feature_name = "r_first_mag"
 
-    # Pull down THEx data
-    thex_dataset = get_data('g_W2')
-    thex_class_data = get_thex_class_data(class_name, thex_dataset)
+    thex_class_data = get_thex_class_data("Unspecified " + class_name, thex_dataset)
 
     thex_z_vals = thex_class_data['redshift'].values
 
@@ -200,22 +204,26 @@ def get_THEx_sampled_data(class_name, max_rmag, num_samples):
 def main():
 
     # plt.ioff()
+    # Pull down THEx data
+    thex_dataset = get_data('g_W2')
 
     Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
                                                        max_rmag=None,
-                                                       num_samples=200)
+                                                       num_samples=200,
+                                                       thex_dataset=thex_dataset)
     II_sampled, II_rand_sample = get_THEx_sampled_data(class_name="II",
                                                        max_rmag=None,
-                                                       num_samples=200)
+                                                       num_samples=200,
+                                                       thex_dataset=thex_dataset)
 
     f = 'r_mag'
 
     plot_compare_feature_dists(feature_name=f,
-                               class_name="Ia",
+                               class_name="Unspecified Ia",
                                rand_sample=Ia_rand_sample,
                                sampled=Ia_sampled)
     plot_compare_feature_dists(feature_name=f,
-                               class_name="II",
+                               class_name="Unspecified II",
                                rand_sample=II_rand_sample,
                                sampled=II_sampled)
     # plt.ioff()
@@ -227,16 +235,18 @@ def main():
         pd.concat([Ia_rand_sample, II_rand_sample]))
 
     model = MultiModel(cols=ordered_mags,
-                       class_labels=['Ia', 'II'],
+                       class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=False,
                        min_class_size=40
                        )
+    sorted_cols = list(model.X)
 
+    print("original size of training set " + str(model.X.shape))
     # Update training data to remove testing sets
     train_X, train_y = get_training_data(
         lsst_sampled_X, orig_sampled_X, model.X, model.y)
-
-    model.X = train_X
+    print("new size of training set " + str(train_X.shape))
+    model.X = train_X[sorted_cols]
     model.y = train_y
 
     get_test_results(model=model,
