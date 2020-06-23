@@ -23,9 +23,9 @@ def plot_Z_ranges(title, data, LSST_label, file_title):
     ax.hist(data['THEx'], bins=Z_bins, density=True,
             label="THEx",  fill=False, edgecolor=DARK_BLUE)
     ax.hist(data['LSST_orig'], bins=Z_bins, density=True,
-            label="Original LSST",  fill=False, edgecolor=LIGHT_GREEN)
-    ax.hist(data['LSST_filt'], bins=Z_bins, density=True,
-            label=LSST_label,  fill=False, edgecolor=LIGHT_BLUE)
+            label="LSST",  fill=False, edgecolor=LIGHT_GREEN)
+    # ax.hist(data['LSST_filt'], bins=Z_bins, density=True,
+    #         label=LSST_label,  fill=False, edgecolor=LIGHT_BLUE)
 
     plt.title(title)
     xlabel = "Redshift"

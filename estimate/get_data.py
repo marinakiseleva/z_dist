@@ -12,12 +12,10 @@ def get_data(name):
     all-features-dataset: 'all_features'
     g_W2-dataset: 'g_W2'
     """
-    X = pd.read_csv(DATA_DIR + name + '_X.csv')
-    X.drop(['Unnamed: 0'], axis=1, inplace=True)
-    y = pd.read_csv(DATA_DIR + name + '_y.csv')
-    y.drop(['Unnamed: 0'], axis=1, inplace=True)
-    df = pd.concat([X, y], axis=1)
-    return df
+    file = '../figures/data/model_data_' + name + '.csv'
+    data = pd.read_csv(file)
+    data.drop(['Unnamed: 0'], axis=1, inplace=True)
+    return data
 
 
 def convert_str_to_list(input_string):
