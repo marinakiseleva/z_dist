@@ -29,23 +29,23 @@ def get_training_data(lsst_sampled_X, orig_sampled_X, all_X, all_y):
     y_train = all_y.copy()
 
     # Reorder columns so they are consistent
-    lsst_sampled_X = lsst_sampled_X[ordered_mags]
-    orig_sampled_X = orig_sampled_X[ordered_mags]
-    X_train = X_train[ordered_mags]
+    lsst_sampled_X = lsst_sampled_X[ordered_mags].astype('float32')
+    orig_sampled_X = orig_sampled_X[ordered_mags].astype('float32')
+    X_train = X_train[ordered_mags].astype('float32')
 
-    new_df = pd.merge(X_train.astype('float32'), lsst_sampled_X.astype('float32'),  how='inner',
-                      on=list(X_train), left_index=True)
+    new_df = X_train.merge(right=lsst_sampled_X, how='inner',
+                           on=ordered_mags, right_index=True)
     drop_indices = new_df.index.tolist()
 
-    new_df = pd.merge(X_train.astype('float32'), orig_sampled_X.astype('float32'),  how='inner',
-                      on=list(X_train), left_index=True)
+    new_df = X_train.merge(right=orig_sampled_X, how='inner',
+                           on=ordered_mags, right_index=True)
     drop_indices += new_df.index.tolist()
 
     # Drop testing data from training
-    X_train = X_train.drop(index=drop_indices).reset_index(drop=True)
-    y_train = y_train.drop(index=drop_indices).reset_index(drop=True)
+    new_X = X_train.drop(index=drop_indices).reset_index(drop=True)
+    new_y = y_train.drop(index=drop_indices).reset_index(drop=True)
 
-    return X_train, y_train
+    return new_X, new_y
 
 
 def get_source_target(data):
@@ -121,6 +121,7 @@ def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test):
 def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset):
     """
     Sample THEx class data to have the same redshift distribution as LSST cut to a certain r_first_mag
+    :param thex_dataset: Dataframe of features and transient_type column
     """
     feature_name = "r_first_mag"
 
@@ -153,7 +154,7 @@ def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset):
         # Filter by redshift
         f_df = thex_class_data[(thex_class_data['redshift'] >= min_feature) & (
             thex_class_data['redshift'] <= max_feature)]
-        if f_df.shape[0] >= samples:
+        if f_df.shape[0] > samples:
             f_df = f_df.sample(n=int(samples))
             new_data.append(f_df)
         else:
@@ -190,9 +191,16 @@ def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset):
 
 def main():
 
-    # plt.ioff()
-    # Pull down THEx data
-    thex_dataset = get_data('g_W2')
+    cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
+            "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
+            'redshift']
+    model = MultiModel(cols=cols,
+                       class_labels=['Unspecified Ia', 'Unspecified II'],
+                       transform_features=False,
+                       min_class_size=40
+                       )
+
+    thex_dataset = pd.concat([model.X, model.y], axis=1)
 
     Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
                                                        max_rmag=None,
@@ -203,16 +211,16 @@ def main():
                                                        num_samples=200,
                                                        thex_dataset=thex_dataset)
 
-    f = 'r_mag'
+    # f = 'r_mag'
 
-    plot_compare_feature_dists(feature_name=f,
-                               class_name="Unspecified Ia",
-                               rand_sample=Ia_rand_sample,
-                               sampled=Ia_sampled)
-    plot_compare_feature_dists(feature_name=f,
-                               class_name="Unspecified II",
-                               rand_sample=II_rand_sample,
-                               sampled=II_sampled)
+    # plot_compare_feature_dists(feature_name=f,
+    #                            class_name="Unspecified Ia",
+    #                            rand_sample=Ia_rand_sample,
+    #                            sampled=Ia_sampled)
+    # plot_compare_feature_dists(feature_name=f,
+    #                            class_name="Unspecified II",
+    #                            rand_sample=II_rand_sample,
+    #                            sampled=II_sampled)
     # plt.ioff()
 
     lsst_sampled_X, lsst_sampled_y = get_source_target(
@@ -221,19 +229,12 @@ def main():
     orig_sampled_X, orig_sampled_y = get_source_target(
         pd.concat([Ia_rand_sample, II_rand_sample]))
 
-    model = MultiModel(cols=ordered_mags,
-                       class_labels=['Unspecified Ia', 'Unspecified II'],
-                       transform_features=False,
-                       min_class_size=40
-                       )
-    sorted_cols = list(model.X)
-
     print("Original size of training set " + str(model.X.shape[0]))
     # Update training data to remove testing sets
     train_X, train_y = get_training_data(
         lsst_sampled_X, orig_sampled_X, model.X, model.y)
     print("New size of training set " + str(train_X.shape[0]))
-    model.X = train_X[sorted_cols]
+    model.X = train_X[ordered_mags]
     model.y = train_y
 
     get_test_results(model=model,
