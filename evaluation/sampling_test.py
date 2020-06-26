@@ -17,6 +17,24 @@ ordered_mags = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
                 "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag']
 
 
+def remove_data(alt_X, orig_X, orig_y):
+    """
+    Drop data from orig_X that is also in alt_X
+    """
+    # Reorder columns so they are consistent
+    alt_X = alt_X[ordered_mags].astype('float32')
+    orig_X = orig_X[ordered_mags].astype('float32')
+
+    new_df = orig_X.merge(right=alt_X, how='inner',
+                          on=ordered_mags, right_index=True)
+    drop_indices = new_df.index.tolist()
+
+    # Drop testing data from training
+    new_X = orig_X.drop(index=drop_indices).reset_index(drop=True)
+    new_y = orig_y.drop(index=drop_indices).reset_index(drop=True)
+    return new_X, new_y
+
+
 def get_training_data(lsst_sampled_X, orig_sampled_X, all_X, all_y):
     """
     Return sampled X and y, with NO values in 'avoid' DataFrame
@@ -28,22 +46,14 @@ def get_training_data(lsst_sampled_X, orig_sampled_X, all_X, all_y):
     X_train = all_X.copy()
     y_train = all_y.copy()
 
-    # Reorder columns so they are consistent
-    lsst_sampled_X = lsst_sampled_X[ordered_mags].astype('float32')
-    orig_sampled_X = orig_sampled_X[ordered_mags].astype('float32')
-    X_train = X_train[ordered_mags].astype('float32')
-
-    new_df = X_train.merge(right=lsst_sampled_X, how='inner',
-                           on=ordered_mags, right_index=True)
-    drop_indices = new_df.index.tolist()
-
-    new_df = X_train.merge(right=orig_sampled_X, how='inner',
-                           on=ordered_mags, right_index=True)
-    drop_indices += new_df.index.tolist()
-
-    # Drop testing data from training
-    new_X = X_train.drop(index=drop_indices).reset_index(drop=True)
-    new_y = y_train.drop(index=drop_indices).reset_index(drop=True)
+    # Drop LSST testing data from training
+    reduced_X, reduced_y = remove_data(alt_X=lsst_sampled_X,
+                                       orig_X=X_train,
+                                       orig_y=y_train)
+    # Drop our testing data from training
+    new_X, new_y = remove_data(alt_X=orig_sampled_X,
+                               orig_X=reduced_X,
+                               orig_y=reduced_y)
 
     return new_X, new_y
 
@@ -59,21 +69,47 @@ def get_source_target(data):
     return sampled_X, sampled_y
 
 
-def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test):
+def plot_performance(model, testdata_y, output_dir, results):
+    """
+    """
+    # Reset class counts and y to be that of the test set, so baselines are accurate
+    a = testdata_y.groupby('transient_type').size()[
+        'I, Ia, _ROOT, _SN, _W_UVOPT, Unspecified Ia']
+    b = testdata_y.groupby('transient_type').size()[
+        'CC, II, _ROOT, _SN, _W_UVOPT, Unspecified II']
+    model.class_counts = {"Unspecified Ia": a,
+                          "Unspecified II": b}
+
+    model.results = results
+    model.y = testdata_y
+    model.dir = output_dir
+
+    os.mkdir(model.dir)
+
+    model.visualize_performance()
+
+
+def get_test_performance(X, y, model):
+    """
+    Run model on this test set and return results
+    """
+    # Test model
+    probabilities = model.get_all_class_probabilities(X, model.normalize)
+    # Add labels as column to probabilities, for later evaluation
+    label_column = y['transient_type'].values.reshape(-1, 1)
+    probabilities = np.hstack((probabilities, label_column))
+    return probabilities
+
+
+def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test, output_dir):
     """
     Train on model data and test on passed in data for X trials, and visualize results.
     """
-    # Initialize output directory
-    exp = str(random.randint(1, 10**10))
-    ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
-    output_dir = ROOT_DIR + "/figures/evaluation/" + exp
-    os.mkdir(output_dir)
-    model.dir = output_dir + "/training"
-    os.mkdir(model.dir)
 
-    sorted_columns = list(model.X)
+    # model.dir = output_dir + "/training"
+    # os.mkdir(model.dir)
 
-    model.num_runs = 10
+    model.num_runs = 2
     model.num_folds = None
     LSST_results = []
     orig_results = []
@@ -84,41 +120,27 @@ def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test):
         X_train.reset_index(drop=True, inplace=True)
 
         # Ensure all X sets have columns in same order
-        LSST_X_test = LSST_X_test[sorted_columns]
-        orig_X_test = orig_X_test[sorted_columns]
-        X_train = X_train[sorted_columns]
+        LSST_X_test = LSST_X_test[ordered_mags]
+        orig_X_test = orig_X_test[ordered_mags]
+        X_train = X_train[ordered_mags]
 
         # Train model on sampled set
         model.train_model(X_train, y_train)
 
         # Test model on LSST
-        probabilities = model.get_all_class_probabilities(LSST_X_test, model.normalize)
-        # Add labels as column to probabilities, for later evaluation
-        label_column = LSST_y_test['transient_type'].values.reshape(-1, 1)
-        probabilities = np.hstack((probabilities, label_column))
-        LSST_results.append(probabilities)
+        LSST_results.append(get_test_performance(LSST_X_test, LSST_y_test, model))
 
         # Test model on orig sample
-        probabilities = model.get_all_class_probabilities(orig_X_test, model.normalize)
-        # Add labels as column to probabilities, for later evaluation
-        label_column = orig_y_test['transient_type'].values.reshape(-1, 1)
-        probabilities = np.hstack((probabilities, label_column))
-        orig_results.append(probabilities)
-
-    # Visualize performance of LSST-like sampled data
-    model.dir = output_dir + "/lsst_test"
-    os.mkdir(model.dir)
-    model.results = LSST_results
-    model.visualize_performance()
+        orig_results.append(get_test_performance(orig_X_test, orig_y_test, model))
 
     # Visualize performance of randomly sampled data
-    model.dir = output_dir + "/orig_test"
-    os.mkdir(model.dir)
-    model.results = orig_results
-    model.visualize_performance()
+    plot_performance(model, orig_y_test, output_dir + "/orig_test", orig_results)
+
+    # Visualize performance of LSST-like sampled data
+    plot_performance(model, LSST_y_test, output_dir + "/lsst_test", LSST_results)
 
 
-def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset):
+def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset, output_dir=None):
     """
     Sample THEx class data to have the same redshift distribution as LSST cut to a certain r_first_mag
     :param thex_dataset: Dataframe of features and transient_type column
@@ -182,7 +204,8 @@ def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset):
     plt.title(class_name)
     plt.xlabel("Redshift")
     plt.ylabel("Density")
-    plt.savefig("../figures/evaluation/z_dist_" + class_name)
+    if output_dir is not None:
+        plt.savefig(output_dir + "/" + class_name)
 
     print("Class count : " + str(class_count))
 
@@ -190,6 +213,12 @@ def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset):
 
 
 def main():
+
+    # Initialize output directory
+    exp = str(random.randint(1, 10**10))
+    ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
+    output_dir = ROOT_DIR + "/figures/evaluation/" + exp
+    os.mkdir(output_dir)
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
@@ -199,17 +228,20 @@ def main():
                        transform_features=False,
                        min_class_size=40
                        )
+    model.dir = output_dir
 
     thex_dataset = pd.concat([model.X, model.y], axis=1)
 
     Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
                                                        max_rmag=None,
                                                        num_samples=200,
-                                                       thex_dataset=thex_dataset)
+                                                       thex_dataset=thex_dataset,
+                                                       output_dir=output_dir)
     II_sampled, II_rand_sample = get_THEx_sampled_data(class_name="II",
                                                        max_rmag=None,
                                                        num_samples=200,
-                                                       thex_dataset=thex_dataset)
+                                                       thex_dataset=thex_dataset,
+                                                       output_dir=output_dir)
 
     # f = 'r_mag'
 
@@ -241,7 +273,8 @@ def main():
                      LSST_X_test=lsst_sampled_X,
                      LSST_y_test=lsst_sampled_y,
                      orig_X_test=orig_sampled_X,
-                     orig_y_test=orig_sampled_y)
+                     orig_y_test=orig_sampled_y,
+                     output_dir=output_dir)
 
 
 if __name__ == "__main__":
