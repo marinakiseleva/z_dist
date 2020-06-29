@@ -86,7 +86,8 @@ def fit_and_plot(X, y, output_dir, perplexity=5, early_exaggeration=12.0, learni
                 n_iter=n_iter,
                 n_iter_without_progress=n_iter_without_progress,
                 random_state=10,
-                verbose=1,)
+                verbose=1,
+                n_jobs=4)
 
     embedding = tsne.fit_transform(X)
 
