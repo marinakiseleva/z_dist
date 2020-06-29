@@ -13,6 +13,10 @@ from evaluation.plotting import *
 from estimate.get_data import *
 from evaluation.sampling_test import *
 
+FIG_WIDTH = 6
+FIG_HEIGHT = 4
+DPI = 600
+
 
 def get_params(tsne):
     return tsne.get_params(deep=True)
@@ -52,6 +56,9 @@ def run_tsne(data, dimensions=2, perplexity=5, early_exaggeration=12.0, learning
 
 
 def plot_reduction(data, num_features, output_dir):
+    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
+                           dpi=DPI, tight_layout=True)
+
     rcParams['figure.figsize'] = 6, 6
     Ia_data = data[data['transient_type'] ==
                    'I, Ia, _ROOT, _SN, _W_UVOPT, Unspecified Ia']
@@ -59,8 +66,8 @@ def plot_reduction(data, num_features, output_dir):
     II_data = data[data['transient_type'] ==
                    'CC, II, _ROOT, _SN, _W_UVOPT, Unspecified II']
 
-    plt.scatter(Ia_data['x'], Ia_data['y'], color="red", label="Ia")
-    plt.scatter(II_data['x'], II_data['y'], color="blue", label="II")
+    ax.scatter(Ia_data['x'], Ia_data['y'], color="red", label="Ia")
+    ax.scatter(II_data['x'], II_data['y'], color="blue", label="II")
     plt.xlabel('x reduction')
     plt.ylabel('y reduction')
     plot_title = "t-SNE Embedding of " + \
