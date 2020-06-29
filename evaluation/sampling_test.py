@@ -101,43 +101,68 @@ def get_test_performance(X, y, model):
     return probabilities
 
 
-def get_test_results(model, LSST_X_test, LSST_y_test, orig_X_test, orig_y_test, output_dir):
+def get_test_sets(thex_dataset, output_dir):
+    """
+    Return X and y of LSST and random sampled testing sets
+    """
+    Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
+                                                       max_rmag=None,
+                                                       num_samples=200,
+                                                       thex_dataset=thex_dataset,
+                                                       output_dir=output_dir)
+    II_sampled, II_rand_sample = get_THEx_sampled_data(class_name="II",
+                                                       max_rmag=None,
+                                                       num_samples=200,
+                                                       thex_dataset=thex_dataset,
+                                                       output_dir=output_dir)
+
+    lsst_sampled_X, lsst_sampled_y = get_source_target(
+        pd.concat([Ia_sampled, II_sampled]))
+
+    orig_sampled_X, orig_sampled_y = get_source_target(
+        pd.concat([Ia_rand_sample, II_rand_sample]))
+
+    return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
+
+
+def get_test_results(model, output_dir):
     """
     Train on model data and test on passed in data for X trials, and visualize results.
     """
-
-    # model.dir = output_dir + "/training"
-    # os.mkdir(model.dir)
-
-    model.num_runs = 2
+    model.num_runs = 10
     model.num_folds = None
+    thex_dataset = pd.concat([model.X, model.y], axis=1)
+
     LSST_results = []
     orig_results = []
+
     for i in range(model.num_runs):
-        # Randomly sample 90% of training data for training
-        X_train = model.X.sample(frac=0.9)
-        y_train = model.y.iloc[X_train.index].reset_index(drop=True)
-        X_train.reset_index(drop=True, inplace=True)
+        # Resample testing sets each run
+        X_lsst, y_lsst, X_orig, y_orig = get_test_sets(
+            thex_dataset, output_dir)
+
+        # Update training data to remove testing sets
+        X_train, y_train = get_training_data(X_lsst, X_orig, model.X, model.y)
+        print("Training set size is " + str(X_train.shape[0]))
 
         # Ensure all X sets have columns in same order
-        LSST_X_test = LSST_X_test[ordered_mags]
-        orig_X_test = orig_X_test[ordered_mags]
+        X_lsst = X_lsst[ordered_mags]
+        X_orig = X_orig[ordered_mags]
         X_train = X_train[ordered_mags]
 
         # Train model on sampled set
         model.train_model(X_train, y_train)
 
         # Test model on LSST
-        LSST_results.append(get_test_performance(LSST_X_test, LSST_y_test, model))
+        LSST_results.append(get_test_performance(X_lsst, y_lsst, model))
 
         # Test model on orig sample
-        orig_results.append(get_test_performance(orig_X_test, orig_y_test, model))
-
-    # Visualize performance of randomly sampled data
-    plot_performance(model, orig_y_test, output_dir + "/orig_test", orig_results)
+        orig_results.append(get_test_performance(X_orig, y_orig, model))
 
     # Visualize performance of LSST-like sampled data
-    plot_performance(model, LSST_y_test, output_dir + "/lsst_test", LSST_results)
+    plot_performance(model, y_lsst, output_dir + "/lsst_test", LSST_results)
+    # Visualize performance of randomly sampled data
+    plot_performance(model, y_orig, output_dir + "/orig_test", orig_results)
 
 
 def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset, output_dir=None):
@@ -230,50 +255,7 @@ def main():
                        )
     model.dir = output_dir
 
-    thex_dataset = pd.concat([model.X, model.y], axis=1)
-
-    Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
-                                                       max_rmag=None,
-                                                       num_samples=200,
-                                                       thex_dataset=thex_dataset,
-                                                       output_dir=output_dir)
-    II_sampled, II_rand_sample = get_THEx_sampled_data(class_name="II",
-                                                       max_rmag=None,
-                                                       num_samples=200,
-                                                       thex_dataset=thex_dataset,
-                                                       output_dir=output_dir)
-
-    # f = 'r_mag'
-
-    # plot_compare_feature_dists(feature_name=f,
-    #                            class_name="Unspecified Ia",
-    #                            rand_sample=Ia_rand_sample,
-    #                            sampled=Ia_sampled)
-    # plot_compare_feature_dists(feature_name=f,
-    #                            class_name="Unspecified II",
-    #                            rand_sample=II_rand_sample,
-    #                            sampled=II_sampled)
-    # plt.ioff()
-
-    lsst_sampled_X, lsst_sampled_y = get_source_target(
-        pd.concat([Ia_sampled, II_sampled]))
-
-    orig_sampled_X, orig_sampled_y = get_source_target(
-        pd.concat([Ia_rand_sample, II_rand_sample]))
-
-    print("Original size of training set " + str(model.X.shape[0]))
-    # Update training data to remove testing sets
-    train_X, train_y = get_training_data(
-        lsst_sampled_X, orig_sampled_X, model.X, model.y)
-    print("New size of training set " + str(train_X.shape[0]))
-    model.X = train_X[ordered_mags]
-    model.y = train_y
-
     get_test_results(model=model,
-                     LSST_X_test=lsst_sampled_X,
-                     LSST_y_test=lsst_sampled_y,
-                     orig_X_test=orig_sampled_X,
-                     orig_y_test=orig_sampled_y,
                      output_dir=output_dir)
 
 
