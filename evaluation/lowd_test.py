@@ -92,11 +92,10 @@ def fit_and_plot(X, y, output_dir, perplexity=5, early_exaggeration=12.0, learni
 
 def main():
 
-	exp = str(random.randint(1, 10**10))
+    exp = str(random.randint(1, 10**10))
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
     output_dir = ROOT_DIR + "/figures/evaluation/" + exp
     os.mkdir(output_dir)
-
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
@@ -145,7 +144,7 @@ def main():
 
     tsne = fit_and_plot(X=model.X,
                         y=model.y,
-                        output_dir = output_dir,
+                        output_dir=output_dir,
                         perplexity=perplexity,
                         early_exaggeration=early_exaggeration,
                         learning_rate=learning_rate,
