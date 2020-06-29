@@ -144,20 +144,36 @@ def main():
     lsst_sampled_X = lsst_sampled_X[ordered_mags]
     orig_sampled_X = orig_sampled_X[ordered_mags]
 
-    perplexity = 100
+    perplexity = 40
     early_exaggeration = 14.0
-    learning_rate = 200  # [10.0, 1000.0]
+    learning_rate = 100  # [10.0, 1000.0]
     n_iter = 50000
     n_iter_without_progress = 400
 
-    tsne = fit_and_plot(X=model.X,
-                        y=model.y,
-                        output_dir=output_dir,
-                        perplexity=perplexity,
-                        early_exaggeration=early_exaggeration,
-                        learning_rate=learning_rate,
-                        n_iter=n_iter,
-                        n_iter_without_progress=n_iter_without_progress)
+    fit_and_plot(X=model.X,
+                 y=model.y,
+                 output_dir=output_dir,
+                 perplexity=perplexity,
+                 early_exaggeration=early_exaggeration,
+                 learning_rate=learning_rate,
+                 n_iter=n_iter,
+                 n_iter_without_progress=n_iter_without_progress)
+
+    fit_and_plot(X=orig_sampled_X,
+                 y=orig_sampled_y,
+                 perplexity=perplexity,
+                 early_exaggeration=early_exaggeration,
+                 learning_rate=learning_rate,
+                 n_iter=n_iter,
+                 n_iter_without_progress=n_iter_without_progress)
+
+    fit_and_plot(X=lsst_sampled_X,
+                 y=lsst_sampled_y,
+                 perplexity=perplexity,
+                 early_exaggeration=early_exaggeration,
+                 learning_rate=learning_rate,
+                 n_iter=n_iter,
+                 n_iter_without_progress=n_iter_without_progress)
 
 
 if __name__ == "__main__":
