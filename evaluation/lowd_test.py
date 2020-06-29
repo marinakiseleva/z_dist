@@ -67,7 +67,7 @@ def plot_reduction(data, num_features, output_dir):
         str(num_features) + " Features in 2 Dimensions"
     plt.title(plot_title)
     plt.legend()
-    plt.savefig(output_dir + "tsne")
+    plt.savefig(output_dir + "/tsne_training_data")
 
 
 def fit_and_plot(X, y, output_dir, perplexity=5, early_exaggeration=12.0, learning_rate=60, n_iter=3000, n_iter_without_progress=200):
@@ -139,7 +139,7 @@ def main():
     perplexity = 100
     early_exaggeration = 14.0
     learning_rate = 200  # [10.0, 1000.0]
-    n_iter = 2
+    n_iter = 50000
     n_iter_without_progress = 400
 
     tsne = fit_and_plot(X=model.X,
