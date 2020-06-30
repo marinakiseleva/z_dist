@@ -79,6 +79,8 @@ def plot_reduction(data, num_features, data_type, output_dir):
 
 def fit_and_plot(X, y, data_type, output_dir, perplexity=5, early_exaggeration=12.0, learning_rate=60, n_iter=3000, n_iter_without_progress=200):
 
+    print("\n\nEvaluating " + str(data_type) + "\n\n")
+
     tsne = TSNE(n_components=2,
                 perplexity=perplexity,
                 early_exaggeration=early_exaggeration,
