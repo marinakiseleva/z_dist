@@ -145,9 +145,9 @@ def main():
     lsst_sampled_X = lsst_sampled_X[ordered_mags]
     orig_sampled_X = orig_sampled_X[ordered_mags]
 
-    perplexity = 40
+    perplexity = 80
     early_exaggeration = 14.0
-    learning_rate = 100  # [10.0, 1000.0]
+    learning_rate = 50  # [10.0, 1000.0]
     n_iter = 50000
     n_iter_without_progress = 400
 
