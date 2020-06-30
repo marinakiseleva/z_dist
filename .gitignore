@@ -1,4 +1,5 @@
-
+zestimator/
+z_evaluator.egg-info/
 notebooks/.ipynb_checkpoints/
 dist/
 __pycache__/
