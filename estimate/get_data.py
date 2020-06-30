@@ -12,7 +12,7 @@ def get_data(name):
     all-features-dataset: 'all_features'
     g_W2-dataset: 'g_W2'
     """
-    file = '../figures/data/model_data_' + name + '.csv'
+    file = DATA_DIR + 'model_data_' + name + '.csv'
     data = pd.read_csv(file)
     data.drop(['Unnamed: 0'], axis=1, inplace=True)
     return data
