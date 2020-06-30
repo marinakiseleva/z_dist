@@ -55,7 +55,7 @@ def run_tsne(data, dimensions=2, perplexity=5, early_exaggeration=12.0, learning
     return embedding
 
 
-def plot_reduction(data, num_features, output_dir):
+def plot_reduction(data, num_features, data_type, output_dir):
     fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
                            dpi=DPI, tight_layout=True)
 
@@ -74,10 +74,10 @@ def plot_reduction(data, num_features, output_dir):
         str(num_features) + " Features in 2 Dimensions"
     plt.title(plot_title)
     plt.legend()
-    plt.savefig(output_dir + "/tsne_training_data")
+    plt.savefig(output_dir + "/" + data_type)
 
 
-def fit_and_plot(X, y, output_dir, perplexity=5, early_exaggeration=12.0, learning_rate=60, n_iter=3000, n_iter_without_progress=200):
+def fit_and_plot(X, y, data_type, output_dir, perplexity=5, early_exaggeration=12.0, learning_rate=60, n_iter=3000, n_iter_without_progress=200):
 
     tsne = TSNE(n_components=2,
                 perplexity=perplexity,
@@ -93,7 +93,7 @@ def fit_and_plot(X, y, output_dir, perplexity=5, early_exaggeration=12.0, learni
 
     reduced_data = pd.DataFrame(embedding, columns=['x', 'y'])
     fulldata = pd.concat([reduced_data, y], axis=1)
-    plot_reduction(fulldata, len(list(X)), output_dir)
+    plot_reduction(fulldata, len(list(X)), data_type, output_dir)
 
     return tsne
 
@@ -102,8 +102,8 @@ def main():
 
     exp = str(random.randint(1, 10**10))
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
-    output_dir = ROOT_DIR + "/figures/evaluation/" + exp
-    os.mkdir(output_dir)
+    output_dir = ROOT_DIR + "/figures/evaluation/"
+    # os.mkdir(output_dir)
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
@@ -152,6 +152,7 @@ def main():
 
     fit_and_plot(X=model.X,
                  y=model.y,
+                 data_type="training",
                  output_dir=output_dir,
                  perplexity=perplexity,
                  early_exaggeration=early_exaggeration,
@@ -161,6 +162,7 @@ def main():
 
     fit_and_plot(X=orig_sampled_X,
                  y=orig_sampled_y,
+                 data_type="orig",
                  output_dir=output_dir,
                  perplexity=perplexity,
                  early_exaggeration=early_exaggeration,
@@ -170,6 +172,7 @@ def main():
 
     fit_and_plot(X=lsst_sampled_X,
                  y=lsst_sampled_y,
+                 data_type="lsst",
                  output_dir=output_dir,
                  perplexity=perplexity,
                  early_exaggeration=early_exaggeration,
