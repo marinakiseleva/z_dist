@@ -161,6 +161,7 @@ def main():
 
     fit_and_plot(X=orig_sampled_X,
                  y=orig_sampled_y,
+                 output_dir=output_dir,
                  perplexity=perplexity,
                  early_exaggeration=early_exaggeration,
                  learning_rate=learning_rate,
@@ -169,6 +170,7 @@ def main():
 
     fit_and_plot(X=lsst_sampled_X,
                  y=lsst_sampled_y,
+                 output_dir=output_dir,
                  perplexity=perplexity,
                  early_exaggeration=early_exaggeration,
                  learning_rate=learning_rate,
