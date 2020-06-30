@@ -70,8 +70,7 @@ def plot_reduction(data, num_features, data_type, output_dir):
     ax.scatter(II_data['x'], II_data['y'], color="blue", label="II")
     plt.xlabel('x reduction')
     plt.ylabel('y reduction')
-    plot_title = "t-SNE Embedding of " + \
-        str(num_features) + " Features in 2 Dimensions"
+    plot_title = "t-SNE Embedding of " + data_type + " Data"
     plt.title(plot_title)
     plt.legend()
     plt.savefig(output_dir + "/" + data_type)
@@ -154,7 +153,7 @@ def main():
 
     fit_and_plot(X=model.X,
                  y=model.y,
-                 data_type="training",
+                 data_type="Training",
                  output_dir=output_dir,
                  perplexity=perplexity,
                  early_exaggeration=early_exaggeration,
@@ -164,7 +163,7 @@ def main():
 
     fit_and_plot(X=orig_sampled_X,
                  y=orig_sampled_y,
-                 data_type="orig",
+                 data_type="Original",
                  output_dir=output_dir,
                  perplexity=perplexity,
                  early_exaggeration=early_exaggeration,
@@ -174,7 +173,7 @@ def main():
 
     fit_and_plot(X=lsst_sampled_X,
                  y=lsst_sampled_y,
-                 data_type="lsst",
+                 data_type="LSST",
                  output_dir=output_dir,
                  perplexity=perplexity,
                  early_exaggeration=early_exaggeration,
