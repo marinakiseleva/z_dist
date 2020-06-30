@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from estimate.constants import *
 
 
-def plot_Z_ranges(title, data, LSST_label, file_title):
+def plot_Z_ranges(title, data, file_title):
     """
     Plot 3 datasets, stored in data map: original THEx data, original LSST, and filtered LSST. All as redshift distributions for a certain class.
     """
@@ -23,15 +23,15 @@ def plot_Z_ranges(title, data, LSST_label, file_title):
     ax.hist(data['THEx'], bins=Z_bins, density=True,
             label="THEx",  fill=False, edgecolor=DARK_BLUE)
     ax.hist(data['LSST_orig'], bins=Z_bins, density=True,
-            label="LSST",  fill=False, edgecolor=LIGHT_GREEN)
+            label="Rubin",  fill=False, edgecolor=LIGHT_GREEN)
     # ax.hist(data['LSST_filt'], bins=Z_bins, density=True,
     #         label=LSST_label,  fill=False, edgecolor=LIGHT_BLUE)
 
-    plt.title(title)
+    plt.title(title, fontsize=14)
     xlabel = "Redshift"
-    plt.xlabel(xlabel)
-    plt.ylabel("Density")
-    plt.legend()
+    plt.xlabel(xlabel, fontsize=12)
+    plt.ylabel("Density", fontsize=12)
+    plt.legend(fontsize=12)
     plt.savefig("../figures/analysis/" + file_title)
     plt.show()
 

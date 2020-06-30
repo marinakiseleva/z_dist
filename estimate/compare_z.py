@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-Match LSST and THEx redshift ranges (not distributions). So that the minimum and maximum redshift per class is roughly the same for THEx and LSST. Try to do so using one r_first_mag cut on LSST data. 
+Compare z dists of Rubin data and THEx data for passed-in class
 """
 
 
@@ -13,6 +13,10 @@ from estimate.constants import *
 from estimate.plotting import *
 from estimate.get_data import *
 from estimate.ks_matching import *
+
+
+from models.multi_model.multi_model import MultiModel
+
 
 LSST_Z_COL = 'true_z'
 LSST_FEAT_COL = 'r_first_mag'
@@ -45,43 +49,26 @@ def main(argv):
     lsst_class_name = argv[2]
     max_feat_val = argv[3]
 
-    if len(argv) == 5:
-        dataset = argv[4]
-    else:
-        dataset = 'g-W2'
-
     lsst_feature_name = "r_first_mag"
+
+    cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
+            "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
+            'redshift']
+    model = MultiModel(cols=cols,
+                       class_labels=[thex_class_name],
+                       transform_features=False,
+                       min_class_size=40
+                       )
+    thex_data = model.X['redshift'].values
 
     LSST_df = get_lsst_class_data(class_name=lsst_class_name,
                                   feature_name=lsst_feature_name)
 
-    # Pull down our data
-    thex_Z_AF, thex_Z_gw2 = get_thex_z_data(thex_class_name)
-    # default to g-w2 unless all-features is passed in
-    if dataset == 'all-features':
-        thex_data = thex_Z_AF
-    else:
-        thex_data = thex_Z_gw2
-
-    min_feat_val = None
-    # max_feat_val = 23
-    file_title = "range_matching_" + lsst_class_name + ".png"
-    lsst_Z_ranged = get_filt_LSST_Z(
-        min_feature=None, max_feature=max_feat_val, data=LSST_df)
-
-    prop_kept = round((len(lsst_Z_ranged) / LSST_df.shape[0]) * 100, 1)
-    LSST_label = "Filtered LSST: " + \
-        "r mag \N{LESS-THAN OR EQUAL TO}" + \
-        str(max_feat_val) + ", " + str(prop_kept) + "%"
-
+    file_title = "z_compare_" + lsst_class_name + ".png"
     datas = {"THEx": thex_data,
-             "LSST_orig": LSST_df[LSST_Z_COL],
-             "LSST_filt": lsst_Z_ranged}
+             "LSST_orig": LSST_df[LSST_Z_COL]}
+    plot_Z_ranges(lsst_class_name, datas, file_title)
 
-    file_title = "range_matching_" + dataset + "_" + lsst_class_name + ".png"
-    plot_Z_ranges(lsst_class_name, datas, LSST_label, file_title)
-
-    return prop_kept
 
 if __name__ == "__main__":
     main(sys.argv)
