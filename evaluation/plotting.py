@@ -20,8 +20,8 @@ def plot_compare_feature_dists(feature_name, class_name, rand_sample, sampled):
     a = ax.hist(sampled[feature_name].values, bins=bins, density=True,
                 label="THEx (LSST sample)", fill=False, edgecolor='red')
 
-    plt.legend()
-    plt.title(class_name)
-    plt.xlabel(feature_name)
-    plt.ylabel("Density")
+    plt.legend(fontsize=12)
+    plt.title(class_name, fontsize=14)
+    plt.xlabel(feature_name, fontsize=12)
+    plt.ylabel("Density", fontsize=12)
     plt.savefig("../figures/evaluation/feature_dist_" + feature_name + "_" + class_name)
