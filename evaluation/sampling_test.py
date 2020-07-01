@@ -100,8 +100,6 @@ def get_test_performance(X, y, model):
     probabilities = np.hstack((probabilities, label_column))
     return probabilities
 
-    return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
-
 
 def get_test_sets(thex_dataset, output_dir, index):
     """
@@ -123,6 +121,7 @@ def get_test_sets(thex_dataset, output_dir, index):
 
     orig_sampled_X, orig_sampled_y = get_source_target(
         pd.concat([Ia_rand_sample, II_rand_sample]))
+    return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
 
 
 def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, index, max_rmag=None):
