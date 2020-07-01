@@ -109,12 +109,12 @@ def get_test_sets(thex_dataset, output_dir, index):
                                                        num_samples=200,
                                                        thex_dataset=thex_dataset,
                                                        output_dir=output_dir,
-                                                       index=index)
+                                                       i=index)
     II_sampled, II_rand_sample = get_THEx_sampled_data(class_name="II",
                                                        num_samples=200,
                                                        thex_dataset=thex_dataset,
                                                        output_dir=output_dir,
-                                                       index=index)
+                                                       i=index)
 
     lsst_sampled_X, lsst_sampled_y = get_source_target(
         pd.concat([Ia_sampled, II_sampled]))
@@ -124,10 +124,11 @@ def get_test_sets(thex_dataset, output_dir, index):
     return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
 
 
-def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, index, max_rmag=None):
+def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i, max_rmag=None):
     """
     Create 2 sample test sets from THEx data, one randomly sampled from our data and the other sampled with LSST redshift dist
     :param thex_dataset: DataFrame of THEx data, X and y
+    :param i: iteration 
     """
 
     thex_class_data = get_thex_class_data("Unspecified " + class_name, thex_dataset)
@@ -179,7 +180,7 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, ind
     plt.title(class_name, fontsize=14)
     plt.xlabel("Redshift", fontsize=12)
     plt.ylabel("Density", fontsize=12)
-    plt.savefig(output_dir + "/" + class_name + "_" + str(index))
+    plt.savefig(output_dir + "/" + class_name + "_" + str(i))
     return lsst_sample, random_sample
 
 
