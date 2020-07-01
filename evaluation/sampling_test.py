@@ -100,21 +100,23 @@ def get_test_performance(X, y, model):
     probabilities = np.hstack((probabilities, label_column))
     return probabilities
 
+    return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
 
-def get_test_sets(thex_dataset, output_dir):
+
+def get_test_sets(thex_dataset, output_dir, index):
     """
     Return X and y of LSST and random sampled testing sets
     """
     Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
-                                                       max_rmag=None,
                                                        num_samples=200,
                                                        thex_dataset=thex_dataset,
-                                                       output_dir=output_dir)
+                                                       output_dir=output_dir,
+                                                       index=index)
     II_sampled, II_rand_sample = get_THEx_sampled_data(class_name="II",
-                                                       max_rmag=None,
                                                        num_samples=200,
                                                        thex_dataset=thex_dataset,
-                                                       output_dir=output_dir)
+                                                       output_dir=output_dir,
+                                                       index=index)
 
     lsst_sampled_X, lsst_sampled_y = get_source_target(
         pd.concat([Ia_sampled, II_sampled]))
@@ -122,14 +124,71 @@ def get_test_sets(thex_dataset, output_dir):
     orig_sampled_X, orig_sampled_y = get_source_target(
         pd.concat([Ia_rand_sample, II_rand_sample]))
 
-    return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
+
+def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, index, max_rmag=None):
+    """
+    Create 2 sample test sets from THEx data, one randomly sampled from our data and the other sampled with LSST redshift dist
+    :param thex_dataset: DataFrame of THEx data, X and y
+    """
+
+    thex_class_data = get_thex_class_data("Unspecified " + class_name, thex_dataset)
+
+    # Pull down LSST data
+    feature_name = "r_first_mag"
+    lsst_class_data = get_lsst_class_data(class_name, feature_name)
+    # cut LSST data to r mag if needed
+    lsst_label = "Rubin"
+    if max_rmag is not None:
+        lsst_class_data = lsst_class_data[lsst_class_data[feature_name] <= max_rmag]
+        lsst_label += " (" + feature_name + " <= " + str(max_rmag) + ")"
+
+    # 2. Get hist of redshift values, and frequencies
+    lsst_z_vals = lsst_class_data['true_z'].values
+    Z_bins = np.linspace(0, 1, 50)
+    hist, bins = np.histogram(lsst_z_vals, bins=Z_bins)
+    z_dist = hist / len(lsst_z_vals)  # proportion of total in each bin
+
+    # Create LSST sample by sampling THEx data at LSST z rates
+    lsst_sample = []
+    for index, freq in enumerate(z_dist):
+        samples = num_samples * freq
+        min_feature = Z_bins[index]
+        max_feature = Z_bins[index + 1]
+        # Filter by redshift
+        f_df = thex_class_data[(thex_class_data['redshift'] >= min_feature) & (
+            thex_class_data['redshift'] <= max_feature)]
+        if f_df.shape[0] > samples:
+            f_df = f_df.sample(n=int(samples))
+            lsst_sample.append(f_df)
+        else:
+            lsst_sample.append(f_df)
+    lsst_sample = pd.concat(lsst_sample).reset_index(drop=True)
+
+    class_count = lsst_sample.shape[0]
+    random_sample = thex_class_data.sample(class_count).reset_index(drop=True)
+
+    # Plot LSST data, sampled LSST, and random sample
+    fig, ax = plt.subplots(tight_layout=True, sharex=True,  sharey=True)
+    a = ax.hist(lsst_z_vals, density=True, bins=Z_bins,
+                label=lsst_label, fill=False, edgecolor='blue')
+    b = ax.hist(random_sample['redshift'].values, density=True, bins=Z_bins,
+                label="THEx random sample", fill=False, edgecolor='green')
+    c = ax.hist(lsst_sample['redshift'].values, density=True, bins=Z_bins,
+                label="THEx Rubin sample", fill=False, edgecolor='red')
+
+    plt.legend(fontsize=12)
+    plt.title(class_name, fontsize=14)
+    plt.xlabel("Redshift", fontsize=12)
+    plt.ylabel("Density", fontsize=12)
+    plt.savefig(output_dir + "/" + class_name + "_" + str(index))
+    return lsst_sample, random_sample
 
 
 def get_test_results(model, output_dir):
     """
     Train on model data and test on passed in data for X trials, and visualize results.
     """
-    model.num_runs = 10
+    model.num_runs = 3
     model.num_folds = None
     thex_dataset = pd.concat([model.X, model.y], axis=1)
 
@@ -139,7 +198,7 @@ def get_test_results(model, output_dir):
     for i in range(model.num_runs):
         # Resample testing sets each run
         X_lsst, y_lsst, X_orig, y_orig = get_test_sets(
-            thex_dataset, output_dir)
+            thex_dataset, output_dir, i)
 
         # Update training data to remove testing sets
         X_train, y_train = get_training_data(X_lsst, X_orig, model.X, model.y)
@@ -163,78 +222,6 @@ def get_test_results(model, output_dir):
     plot_performance(model, y_lsst, output_dir + "/lsst_test", LSST_results)
     # Visualize performance of randomly sampled data
     plot_performance(model, y_orig, output_dir + "/orig_test", orig_results)
-
-
-def get_THEx_sampled_data(class_name, max_rmag, num_samples, thex_dataset, output_dir=None):
-    """
-    Sample THEx class data to have the same redshift distribution as LSST cut to a certain r_first_mag
-    :param thex_dataset: Dataframe of features and transient_type column
-    """
-    feature_name = "r_first_mag"
-
-    thex_class_data = get_thex_class_data("Unspecified " + class_name, thex_dataset)
-
-    thex_z_vals = thex_class_data['redshift'].values
-
-    # Pull down LSST data
-    lsst_class_data = get_lsst_class_data(class_name, feature_name)
-
-    # Get histogram and per bar frequencies of LSST cut data
-    # 1. get LSST data cut to certain r first mag range
-    if max_rmag is not None:
-        filt_lsst_class_data = lsst_class_data[lsst_class_data[feature_name] <= max_rmag]
-    else:
-        filt_lsst_class_data = lsst_class_data
-
-    # 2. Get hist of redshift values, and frequencies
-    lsst_z_vals = filt_lsst_class_data['true_z'].values
-    Z_bins = np.linspace(0, 1, 50)
-    hist, bins = np.histogram(lsst_z_vals, bins=Z_bins)
-    z_dist = hist / len(lsst_z_vals)  # proportion of total in each bin
-
-    # Sample THEx data at these rates
-    new_data = []
-    for index, freq in enumerate(z_dist):
-        samples = num_samples * freq
-        min_feature = Z_bins[index]
-        max_feature = Z_bins[index + 1]
-        # Filter by redshift
-        f_df = thex_class_data[(thex_class_data['redshift'] >= min_feature) & (
-            thex_class_data['redshift'] <= max_feature)]
-        if f_df.shape[0] > samples:
-            f_df = f_df.sample(n=int(samples))
-            new_data.append(f_df)
-        else:
-            new_data.append(f_df)
-    df = pd.concat(new_data)
-    df = df.reset_index(drop=True)
-    if max_rmag is not None:
-        lsst_label = "LSST (" + feature_name + " <= " + str(max_rmag) + ")"
-    else:
-        lsst_label = "LSST"
-    thex_label = "THEx (LSST sample)"
-
-    class_count = df.shape[0]
-    random_sample = thex_class_data.sample(class_count).reset_index(drop=True)
-
-    fig, ax = plt.subplots(tight_layout=True, sharex=True,  sharey=True)
-    a = ax.hist(lsst_z_vals, density=True, bins=Z_bins,
-                label=lsst_label, fill=False, edgecolor='blue')
-    b = ax.hist(random_sample['redshift'].values, density=True, bins=Z_bins,
-                label="THEx (random sample)", fill=False, edgecolor='green')
-    c = ax.hist(df['redshift'].values, density=True, bins=Z_bins,
-                label=thex_label, fill=False, edgecolor='red')
-
-    plt.legend()
-    plt.title(class_name)
-    plt.xlabel("Redshift")
-    plt.ylabel("Density")
-    if output_dir is not None:
-        plt.savefig(output_dir + "/" + class_name)
-
-    print("Class count : " + str(class_count))
-
-    return df, random_sample
 
 
 def main():
