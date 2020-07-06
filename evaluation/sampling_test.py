@@ -86,6 +86,12 @@ def plot_performance(model, testdata_y, output_dir, results):
 
     os.mkdir(model.dir)
 
+    # Save results in pickle
+    with open(model.dir + '/results.pickle', 'wb') as f:
+        pickle.dump(model.results, f)
+    with open(model.dir + '/y.pickle', 'wb') as f:
+        pickle.dump(model.y, f)
+
     model.visualize_performance()
 
 
@@ -124,7 +130,7 @@ def get_test_sets(thex_dataset, output_dir, index):
     return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
 
 
-def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i, max_rmag=None):
+def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="", max_rmag=None):
     """
     Create 2 sample test sets from THEx data, one randomly sampled from our data and the other sampled with LSST redshift dist
     :param thex_dataset: DataFrame of THEx data, X and y
@@ -188,7 +194,7 @@ def get_test_results(model, output_dir):
     """
     Train on model data and test on passed in data for X trials, and visualize results.
     """
-    model.num_runs = 3
+    model.num_runs = 100
     model.num_folds = None
     thex_dataset = pd.concat([model.X, model.y], axis=1)
 
