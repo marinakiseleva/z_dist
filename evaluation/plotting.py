@@ -4,8 +4,16 @@ import matplotlib.pyplot as plt
 
 
 def plot_compare_feature_dists(feature_name, class_name, rand_sample, sampled):
+    FIG_WIDTH = 6
+    FIG_HEIGHT = 4
+    DPI = 200
 
-    fig, ax = plt.subplots(tight_layout=True, sharex=True,  sharey=True)
+    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT), dpi=DPI,
+                           tight_layout=True, sharex=True,  sharey=True)
+
+    GREEN = "#b3e6b3"
+    BLUE = "#99c2ff"
+    RED = "#ffb3b3"
 
     if feature_name == 'redshift':
         bins = np.linspace(0, 1, 20)
@@ -16,9 +24,9 @@ def plot_compare_feature_dists(feature_name, class_name, rand_sample, sampled):
         plt.xlim((9, 23))
 
     b = ax.hist(rand_sample[feature_name].values, bins=bins, density=True,
-                label="THEx (random sample)", fill=False, edgecolor='green')
+                label="THEx (random sample)", fill=False, edgecolor=GREEN)
     a = ax.hist(sampled[feature_name].values, bins=bins, density=True,
-                label="THEx (LSST sample)", fill=False, edgecolor='red')
+                label="THEx (LSST sample)", fill=False, edgecolor=RED)
 
     plt.legend(fontsize=12)
     plt.title(class_name, fontsize=14)
