@@ -174,19 +174,25 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
     random_sample = thex_class_data.sample(class_count).reset_index(drop=True)
 
     # Plot LSST data, sampled LSST, and random sample
-    fig, ax = plt.subplots(tight_layout=True, sharex=True,  sharey=True)
+    fig, ax = plt.subplots(figsize=(6, 4), dpi=200,
+                           tight_layout=True, sharex=True,  sharey=True)
+
+    GREEN = "#b3e6b3"
+    BLUE = "#99c2ff"
+    RED = "#ffb3b3"
+
     a = ax.hist(lsst_z_vals, density=True, bins=Z_bins,
-                label=lsst_label, fill=False, edgecolor='blue')
+                label=lsst_label, fill=False, edgecolor=BLUE)
     b = ax.hist(random_sample['redshift'].values, density=True, bins=Z_bins,
-                label="THEx random sample", fill=False, edgecolor='green')
+                label="THEx random sample", fill=False, edgecolor=GREEN)
     c = ax.hist(lsst_sample['redshift'].values, density=True, bins=Z_bins,
-                label="THEx Rubin sample", fill=False, edgecolor='red')
+                label="THEx Rubin sample", fill=False, edgecolor=RED)
 
     plt.legend(fontsize=12)
     plt.title(class_name, fontsize=14)
     plt.xlabel("Redshift", fontsize=12)
     plt.ylabel("Density", fontsize=12)
-    plt.savefig(output_dir + "/" + class_name + "_" + str(i))
+    plt.savefig(output_dir + "/" + class_name + "_" + str(i) + ".pdf")
     return lsst_sample, random_sample
 
 
@@ -194,7 +200,7 @@ def get_test_results(model, output_dir):
     """
     Train on model data and test on passed in data for X trials, and visualize results.
     """
-    model.num_runs = 100
+    model.num_runs = 2
     model.num_folds = None
     thex_dataset = pd.concat([model.X, model.y], axis=1)
 
