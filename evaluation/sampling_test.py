@@ -200,7 +200,7 @@ def get_test_results(model, output_dir):
     """
     Train on model data and test on passed in data for X trials, and visualize results.
     """
-    model.num_runs = 2
+    model.num_runs = 100
     model.num_folds = None
     thex_dataset = pd.concat([model.X, model.y], axis=1)
 
@@ -239,6 +239,9 @@ def get_test_results(model, output_dir):
 def main():
 
     # Initialize output directory
+
+    init_plot_settings()
+
     exp = str(random.randint(1, 10**10))
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
     output_dir = ROOT_DIR + "/figures/evaluation/" + exp

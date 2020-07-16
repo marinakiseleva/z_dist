@@ -76,7 +76,7 @@ def plot_reduction(data, num_features, data_type, output_dir):
     plt.savefig(output_dir + "/" + data_type)
 
 
-def fit_and_plot(X, y, data_type, output_dir, perplexity=5, early_exaggeration=12.0, learning_rate=60, n_iter=3000, n_iter_without_progress=200):
+def fit_and_plot(X, y, data_type, output_dir, perplexity=30.0, early_exaggeration=12.0, learning_rate=200.0, n_iter=10000, n_iter_without_progress=300):
 
     print("\n\nEvaluating " + str(data_type) + "\n\n")
 
@@ -101,10 +101,12 @@ def fit_and_plot(X, y, data_type, output_dir, perplexity=5, early_exaggeration=1
 
 def main():
 
+    init_plot_settings()
+
     exp = str(random.randint(1, 10**10))
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
-    output_dir = ROOT_DIR + "/figures/evaluation/"
-    # os.mkdir(output_dir)
+    output_dir = ROOT_DIR + "/figures/evaluation/" + exp + "/"
+    os.mkdir(output_dir)
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
@@ -145,9 +147,9 @@ def main():
     lsst_sampled_X = lsst_sampled_X[ordered_mags]
     orig_sampled_X = orig_sampled_X[ordered_mags]
 
-    perplexity = 80
-    early_exaggeration = 14.0
-    learning_rate = 50  # [10.0, 1000.0]
+    # perplexity is 5- 50, ~number of neighbors per pixel
+
+    #  learning_rate  [10.0, 1000.0]
     n_iter = 50000
     n_iter_without_progress = 400
 
@@ -155,9 +157,9 @@ def main():
                  y=model.y,
                  data_type="Training",
                  output_dir=output_dir,
-                 perplexity=perplexity,
-                 early_exaggeration=early_exaggeration,
-                 learning_rate=learning_rate,
+                 perplexity=80,
+                 early_exaggeration=10.0,
+                 learning_rate=20,
                  n_iter=n_iter,
                  n_iter_without_progress=n_iter_without_progress)
 
@@ -165,19 +167,19 @@ def main():
                  y=orig_sampled_y,
                  data_type="Original",
                  output_dir=output_dir,
-                 perplexity=perplexity,
-                 early_exaggeration=early_exaggeration,
-                 learning_rate=learning_rate,
+                 perplexity=15,
+                 early_exaggeration=2,
+                 learning_rate=10,
                  n_iter=n_iter,
                  n_iter_without_progress=n_iter_without_progress)
 
     fit_and_plot(X=lsst_sampled_X,
                  y=lsst_sampled_y,
-                 data_type="LSST",
+                 data_type="Rubin",
                  output_dir=output_dir,
-                 perplexity=perplexity,
-                 early_exaggeration=early_exaggeration,
-                 learning_rate=learning_rate,
+                 perplexity=10,
+                 early_exaggeration=5,
+                 learning_rate=10,
                  n_iter=n_iter,
                  n_iter_without_progress=n_iter_without_progress)
 

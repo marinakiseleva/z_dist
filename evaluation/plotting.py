@@ -3,6 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def init_plot_settings():
+    """
+    Set defaults for all plots: font.
+    """
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
+
+
 def plot_compare_feature_dists(feature_name, class_name, rand_sample, sampled):
     FIG_WIDTH = 6
     FIG_HEIGHT = 4
