@@ -1,5 +1,5 @@
 """
-Determine if the model does any better or worse with a different distribution of transient events.
+Determine if the model does any better or worse with a different distribution of transient events, for the testing data. 
 """
 import os
 import random
@@ -100,24 +100,24 @@ def get_test_performance(X, y, model):
     Run model on this test set and return results
     """
     # Test model
-    probabilities = model.get_all_class_probabilities(X, model.normalize)
+    probabilities = model.get_all_class_probabilities(X)
     # Add labels as column to probabilities, for later evaluation
     label_column = y['transient_type'].values.reshape(-1, 1)
     probabilities = np.hstack((probabilities, label_column))
     return probabilities
 
 
-def get_test_sets(thex_dataset, output_dir, index):
+def get_test_sets(thex_dataset, output_dir, index, num_samples=200):
     """
     Return X and y of LSST and random sampled testing sets
     """
     Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
-                                                       num_samples=200,
+                                                       num_samples=num_samples,
                                                        thex_dataset=thex_dataset,
                                                        output_dir=output_dir,
                                                        i=index)
     II_sampled, II_rand_sample = get_THEx_sampled_data(class_name="II",
-                                                       num_samples=200,
+                                                       num_samples=num_samples,
                                                        thex_dataset=thex_dataset,
                                                        output_dir=output_dir,
                                                        i=index)

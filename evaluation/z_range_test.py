@@ -127,7 +127,7 @@ plt.savefig(output_dir + "/z_ranges")
 
 def evaluate(X_test, y_test, test_type, model):
     results = []
-    probabilities = model.get_all_class_probabilities(X_test, model.normalize)
+    probabilities = model.get_all_class_probabilities(X_test)
     # Add labels as column to probabilities, for later evaluation
     probabilities = np.hstack((probabilities, y_test))
     results.append(probabilities)
