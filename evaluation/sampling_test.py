@@ -1,14 +1,17 @@
 """
 Determine if the model does any better or worse with a different distribution of transient events, for the testing data. 
 """
+from datetime import datetime
 import os
 import random
 import math
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
-
-
+from thex_data.data_consts import *
 from models.multi_model.multi_model import MultiModel
 from evaluation.plotting import *
 from estimate.get_data import *
@@ -174,7 +177,8 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
     random_sample = thex_class_data.sample(class_count).reset_index(drop=True)
 
     # Plot LSST data, sampled LSST, and random sample
-    fig, ax = plt.subplots(figsize=(6, 4), dpi=200,
+    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
+                           dpi=DPI,
                            tight_layout=True, sharex=True,  sharey=True)
 
     GREEN = "#b3e6b3"
@@ -182,25 +186,26 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
     RED = "#ffb3b3"
 
     a = ax.hist(lsst_z_vals, density=True, bins=Z_bins,
-                label=lsst_label, fill=False, edgecolor=BLUE)
+                label=lsst_label, fill=False, edgecolor=BLUE, linewidth=1.2)
     b = ax.hist(random_sample['redshift'].values, density=True, bins=Z_bins,
-                label="THEx random sample", fill=False, edgecolor=GREEN)
+                label="THEx random sample", fill=False, edgecolor=GREEN, linewidth=1.2)
     c = ax.hist(lsst_sample['redshift'].values, density=True, bins=Z_bins,
-                label="THEx Rubin sample", fill=False, edgecolor=RED)
-
-    plt.legend(fontsize=12)
-    plt.title(class_name, fontsize=14)
-    plt.xlabel("Redshift", fontsize=12)
-    plt.ylabel("Density", fontsize=12)
+                label="THEx Rubin sample", fill=False, edgecolor=RED, linewidth=1.2)
+    plt.xticks(fontsize=TICK_S)
+    plt.yticks(fontsize=TICK_S)
+    plt.legend(fontsize=LAB_S)
+    plt.title(class_name + " (unspec.)", fontsize=TITLE_S)
+    plt.xlabel("Redshift", fontsize=LAB_S)
+    plt.ylabel("Density", fontsize=LAB_S)
     plt.savefig(output_dir + "/" + class_name + "_" + str(i) + ".pdf")
     return lsst_sample, random_sample
 
 
-def get_test_results(model, output_dir):
+def get_test_results(model, output_dir, iterations=100):
     """
     Train on model data and test on passed in data for X trials, and visualize results.
     """
-    model.num_runs = 100
+    model.num_runs = iterations
     model.num_folds = None
     thex_dataset = pd.concat([model.X, model.y], axis=1)
 
@@ -240,12 +245,13 @@ def main():
 
     # Initialize output directory
 
-    init_plot_settings()
-
-    exp = str(random.randint(1, 10**10))
+    now = datetime.now()
+    dt_string = now.strftime("%d_%m_%Y__%H_%M_%S")
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
-    output_dir = ROOT_DIR + "/figures/evaluation/" + exp
+    output_dir = ROOT_DIR + "/output/" + dt_string
     os.mkdir(output_dir)
+
+    init_plot_settings()
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',

@@ -15,13 +15,12 @@ def plot_compare_feature_dists(feature_name, class_name, rand_sample, sampled):
     FIG_WIDTH = 6
     FIG_HEIGHT = 4
     DPI = 200
-
-    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT), dpi=DPI,
-                           tight_layout=True, sharex=True,  sharey=True)
-
     GREEN = "#b3e6b3"
     BLUE = "#99c2ff"
     RED = "#ffb3b3"
+
+    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT), dpi=DPI,
+                           tight_layout=True, sharex=True,  sharey=True)
 
     if feature_name == 'redshift':
         bins = np.linspace(0, 1, 20)
@@ -40,4 +39,5 @@ def plot_compare_feature_dists(feature_name, class_name, rand_sample, sampled):
     plt.title(class_name, fontsize=14)
     plt.xlabel(feature_name, fontsize=12)
     plt.ylabel("Density", fontsize=12)
-    plt.savefig("../figures/evaluation/feature_dist_" + feature_name + "_" + class_name)
+    plt.savefig("../figures/evaluation/feature_dist_" +
+                feature_name + "_" + class_name + ".pdf")
