@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import pickle
 from estimate.constants import *
+from thex_data.data_consts import *
 
 
 def get_data(name):
