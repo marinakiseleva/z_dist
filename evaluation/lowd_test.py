@@ -17,6 +17,14 @@ FIG_WIDTH = 6
 FIG_HEIGHT = 4
 DPI = 600
 
+LSST_TEST_STR = "Rubin-like test set"
+THEX_TEST_STR = "THEx test set"
+TRAIN_SET_STR = "THEx training set"
+
+p_colors = {LSST_TEST_STR: "#ffb3b3",
+            THEX_TEST_STR: "#b3e6b3",
+            TRAIN_SET_STR: "black"}
+
 
 def get_params(tsne):
     return tsne.get_params(deep=True)
@@ -54,6 +62,8 @@ def run_tsne(data, dimensions=2, perplexity=5, early_exaggeration=12.0, learning
     plot_tsne(embedding, dimensions, num_features)
     return embedding
 
+from thex_data.data_consts import *
+
 
 def plot_reduction(data, num_features, data_type, output_dir):
     fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
@@ -68,11 +78,15 @@ def plot_reduction(data, num_features, data_type, output_dir):
 
     ax.scatter(Ia_data['x'], Ia_data['y'], color="red", label="Ia")
     ax.scatter(II_data['x'], II_data['y'], color="blue", label="II")
-    plt.xlabel('x reduction')
-    plt.ylabel('y reduction')
-    plot_title = "t-SNE Embedding of " + data_type + " Data"
-    plt.title(plot_title)
-    plt.legend()
+
+    for k in ax.spines.keys():
+        ax.spines[k].set_color(p_colors[data_type])
+
+    plt.xlabel('x reduction', fontsize=LAB_S)
+    plt.ylabel('y reduction', fontsize=LAB_S)
+
+    plt.title(data_type, fontsize=TITLE_S)
+    plt.legend(fontsize=LAB_S)
     plt.savefig(output_dir + "/" + data_type)
 
 
@@ -98,15 +112,17 @@ def fit_and_plot(X, y, data_type, output_dir, perplexity=30.0, early_exaggeratio
 
     return tsne
 
+from datetime import datetime
+
 
 def main():
+    now = datetime.now()
+    dt_string = now.strftime("%d_%m_%Y__%H_%M_%S")
+    ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
+    output_dir = ROOT_DIR + "/output/" + dt_string
+    os.mkdir(output_dir)
 
     init_plot_settings()
-
-    exp = str(random.randint(1, 10**10))
-    ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
-    output_dir = ROOT_DIR + "/figures/evaluation/" + exp + "/"
-    os.mkdir(output_dir)
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
@@ -153,9 +169,11 @@ def main():
     n_iter = 50000
     n_iter_without_progress = 400
 
+    np.set_printoptions(precision=3)
+
     fit_and_plot(X=model.X,
                  y=model.y,
-                 data_type="Training",
+                 data_type=TRAIN_SET_STR,
                  output_dir=output_dir,
                  perplexity=80,
                  early_exaggeration=10.0,
@@ -165,7 +183,7 @@ def main():
 
     fit_and_plot(X=orig_sampled_X,
                  y=orig_sampled_y,
-                 data_type="Original",
+                 data_type=THEX_TEST_STR,
                  output_dir=output_dir,
                  perplexity=15,
                  early_exaggeration=2,
@@ -175,7 +193,7 @@ def main():
 
     fit_and_plot(X=lsst_sampled_X,
                  y=lsst_sampled_y,
-                 data_type="Rubin",
+                 data_type=LSST_TEST_STR,
                  output_dir=output_dir,
                  perplexity=10,
                  early_exaggeration=5,
