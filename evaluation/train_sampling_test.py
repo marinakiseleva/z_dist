@@ -17,7 +17,7 @@ def main():
     II_label = 'CC, II, _ROOT, _SN, _W_UVOPT, Unspecified II'
 
     model = MultiModel(cols=cols,
-                       num_runs=10,
+                       num_runs=100,
                        class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=True,
                        min_class_size=40,
@@ -29,7 +29,7 @@ def main():
     lsst_X, lsst_y, rand_X, rand_y = get_test_sets(thex_dataset=thex_dataset,
                                                    output_dir=output_dir,
                                                    index="",
-                                                   num_samples=400)
+                                                   num_samples=300)
 
     # Drop redshift from X's
 
