@@ -1,5 +1,6 @@
 # !/usr / bin / env python
 # coding: utf-8
+import os
 import pandas as pd
 import numpy as np
 import pickle
@@ -73,7 +74,8 @@ def get_lsst_data():
     """
     Pull down LSST data
     """
-    with open(DATA_DIR + 'lsst-sims.pk', 'rb') as f:
+    local = os.path.dirname(os.path.abspath(__file__)) + "/.."
+    with open(local + '/data/lsst-sims.pk', 'rb') as f:
         data = pickle.load(f)
     return data
 

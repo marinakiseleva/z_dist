@@ -72,32 +72,6 @@ def get_source_target(data):
     return sampled_X, sampled_y
 
 
-def plot_performance(model, testdata_y, output_dir, results):
-    """
-    """
-    # Reset class counts and y to be that of the test set, so baselines are accurate
-    a = testdata_y.groupby('transient_type').size()[
-        'I, Ia, _ROOT, _SN, _W_UVOPT, Unspecified Ia']
-    b = testdata_y.groupby('transient_type').size()[
-        'CC, II, _ROOT, _SN, _W_UVOPT, Unspecified II']
-    model.class_counts = {"Unspecified Ia": a,
-                          "Unspecified II": b}
-
-    model.results = results
-    model.y = testdata_y
-    model.dir = output_dir
-
-    os.mkdir(model.dir)
-
-    # Save results in pickle
-    with open(model.dir + '/results.pickle', 'wb') as f:
-        pickle.dump(model.results, f)
-    with open(model.dir + '/y.pickle', 'wb') as f:
-        pickle.dump(model.y, f)
-
-    model.visualize_performance()
-
-
 def get_test_performance(X, y, model):
     """
     Run model on this test set and return results
@@ -112,7 +86,7 @@ def get_test_performance(X, y, model):
 
 def get_test_sets(thex_dataset, output_dir, index, num_samples=200):
     """
-    Return X and y of LSST and random sampled testing sets
+    Return X and y of LSST and random sampled testing sets.
     """
     Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
                                                        num_samples=num_samples,
@@ -146,7 +120,7 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
     feature_name = "r_first_mag"
     lsst_class_data = get_lsst_class_data(class_name, feature_name)
     # cut LSST data to r mag if needed
-    lsst_label = "Rubin"
+    lsst_label = "LSST"
     if max_rmag is not None:
         lsst_class_data = lsst_class_data[lsst_class_data[feature_name] <= max_rmag]
         lsst_label += " (" + feature_name + " <= " + str(max_rmag) + ")"
@@ -188,9 +162,9 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
     a = ax.hist(lsst_z_vals, density=True, bins=Z_bins,
                 label=lsst_label, fill=False, edgecolor=BLUE, linewidth=1.2)
     b = ax.hist(random_sample['redshift'].values, density=True, bins=Z_bins,
-                label="THEx random sample", fill=False, edgecolor=GREEN, linewidth=1.2)
+                label="Random sample", fill=False, edgecolor=GREEN, linewidth=1.2)
     c = ax.hist(lsst_sample['redshift'].values, density=True, bins=Z_bins,
-                label="THEx Rubin sample", fill=False, edgecolor=RED, linewidth=1.2)
+                label="LSST-like sample", fill=False, edgecolor=RED, linewidth=1.2)
     plt.xticks(fontsize=TICK_S)
     plt.yticks(fontsize=TICK_S)
     plt.legend(fontsize=LAB_S)
@@ -264,7 +238,8 @@ def main():
     model.dir = output_dir
 
     get_test_results(model=model,
-                     output_dir=output_dir)
+                     output_dir=output_dir,
+                     iterations=2)
 
 
 if __name__ == "__main__":
