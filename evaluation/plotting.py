@@ -144,7 +144,7 @@ def get_model_mets(model, results):
 
 def plot_class_met(ax, indices, vals, cis, baselines, label, color):
     """
-    Plot the metrics for this class. 
+    Plot the metrics for this class, on given axis.
     :param indices: y-value indices of bars (in horizontal bar plot)
     :param vals: Dict from class name to value
     :param cis: Dict from class name to [] confidence intervals
@@ -179,40 +179,28 @@ def plot_class_met(ax, indices, vals, cis, baselines, label, color):
                    linestyles='--', colors='red')
 
 
-def plot_performance_together(model, test_y, LSST_results, orig_results):
+def plot_met(model, L_vals, L_cis, r_vals, r_cis, baselines, label):
     """
-    Plot performance of LSST test set vs regular test set
-    :param model: Initialized THEx model used
-    :param test_y: One of the test sets. Only use it for the class counts. Assumes both test sets have same class counts.
-    :param LSST_results: Results of LSST test data
-    :param orig_results: Results of THEx test data
+    Given LSST and random metrics (either purity or completeness) plot on figure
     """
-
-    L_ps, L_cs, L_ps_ci, L_cs_ci = get_model_mets(model, LSST_results)
-    r_ps, r_cs, r_ps_ci, r_cs_ci = get_model_mets(model, orig_results)
-
-    c_baselines, p_baselines = compute_baselines(
-        model.class_counts, model.class_labels, test_y, len(model.class_labels), None)
 
     fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT), dpi=200,
                            tight_layout=True, sharex=True, sharey=True)
-
     GREEN = "#b3e6b3"
     RED = "#ffb3b3"
-
     plot_class_met(ax=ax,
                    indices=[0.3, 0.6],
-                   vals=r_ps,
-                   cis=r_ps_ci,
-                   baselines=p_baselines,
+                   vals=r_vals,
+                   cis=r_cis,
+                   baselines=baselines,
                    label="THEx",
                    color=GREEN)
 
     plot_class_met(ax=ax,
                    indices=[0.2, 0.5],
-                   vals=L_ps,
-                   cis=L_ps_ci,
-                   baselines=p_baselines,
+                   vals=L_vals,
+                   cis=L_cis,
+                   baselines=baselines,
                    label="LSST-like",
                    color=RED)
 
@@ -225,5 +213,36 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
     plt.yticks(np.array([0.3, 0.6]) - 0.05, model.class_labels,  fontsize=TICK_S,
                horizontalalignment='right')
     plt.ylabel('Transient Class', fontsize=LAB_S)
-    plt.xlabel("Purity", fontsize=LAB_S)
-    plt.savefig("../figures/testing/LSST_Evaluation_purity.pdf")
+    plt.xlabel(label, fontsize=LAB_S)
+    plt.savefig("../figures/testing/LSST_Evaluation_" + label + ".pdf")
+
+
+def plot_performance_together(model, test_y, LSST_results, orig_results):
+    """
+    Plot performance of LSST test set vs regular test set; purity and completeness.
+    :param model: Initialized THEx model used
+    :param test_y: One of the test sets. Only use it for the class counts. Assumes both test sets have same class counts.
+    :param LSST_results: Results of LSST test data
+    :param orig_results: Results of THEx test data
+    """
+    L_ps, L_cs, L_ps_ci, L_cs_ci = get_model_mets(model, LSST_results)
+    r_ps, r_cs, r_ps_ci, r_cs_ci = get_model_mets(model, orig_results)
+
+    c_baselines, p_baselines = compute_baselines(
+        model.class_counts, model.class_labels, test_y, len(model.class_labels), None)
+
+    plot_met(model=model,
+             L_vals=L_ps,
+             L_cis=L_ps_ci,
+             r_vals=r_ps,
+             r_cis=r_ps_ci,
+             baselines=p_baselines,
+             label="Purity")
+
+    plot_met(model=model,
+             L_vals=L_cs,
+             L_cis=L_cs_ci,
+             r_vals=r_cs,
+             r_cis=r_cs_ci,
+             baselines=c_baselines,
+             label="Completeness")
