@@ -17,7 +17,7 @@ FIG_WIDTH = 6
 FIG_HEIGHT = 4
 DPI = 600
 
-LSST_TEST_STR = "Rubin-like test set"
+LSST_TEST_STR = "LSST-like test set"
 THEX_TEST_STR = "THEx test set"
 TRAIN_SET_STR = "THEx training set"
 
