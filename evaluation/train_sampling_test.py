@@ -1,5 +1,5 @@
 """
-Determine if the model does any better or worse with a different distribution of transient events for the training data. Use 2 different training sets and same test set to see if training on LSST-like data results in better performance on LSST-like testing data, than by training on our normal training data and testing on the same LSST-like data. IE - the most 'LSST-like' data.
+Use same training, 2 different testing sets.
 """
 
 import pandas as pd
@@ -17,7 +17,7 @@ def main():
     II_label = 'CC, II, _ROOT, _SN, _W_UVOPT, Unspecified II'
 
     model = MultiModel(cols=cols,
-                       num_runs=100,
+                       num_runs=2,
                        class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=True,
                        min_class_size=40,
