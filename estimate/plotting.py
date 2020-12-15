@@ -42,8 +42,8 @@ def plot_Z_ranges_together(data, file_title):
                                       label="LSST",  fill=False, edgecolor=LIGHT_BLUE)
         ax[row_index][col_index].set_title(class_label, fontsize=18, y=0.85)
 
-    plot_data(0, 0, data["Unspecified Ia"], "Ia")
-    plot_data(0, 1, data["Unspecified II"], "II")
+    plot_data(0, 0, data["Unspecified Ia"], "Ia (unspec.)")
+    plot_data(0, 1, data["Unspecified II"], "II (unspec.)")
     plot_data(1, 0, data["Ia-91bg"], "Ia-91bg")
     plot_data(1, 1, data["TDE"], "TDE")
 
