@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-Compare z dists of Rubin data and THEx data for passed-in class
+Compare z dists of LSST data and THEx data for the 4 classes for which we have data for both (Ia, II, TDE, Ia-91bg)
 """
 
 
