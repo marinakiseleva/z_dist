@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from estimate.constants import *
 
-LIGHT_GREEN = "#99ffe6"
+LIGHT_GREEN = "#b3e6b3"
 LIGHT_RED = "#ffb3b3"
 LIGHT_BLUE = "#99ccff"
 DARK_BLUE = "#0000b3"
