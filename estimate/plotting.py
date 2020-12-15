@@ -5,6 +5,56 @@ import numpy as np
 import matplotlib.pyplot as plt
 from estimate.constants import *
 
+LIGHT_GREEN = "#99ffe6"
+LIGHT_RED = "#ffb3b3"
+LIGHT_BLUE = "#99ccff"
+DARK_BLUE = "#0000b3"
+LIGHT_ORANGE = "#ffddcc"
+DARK_ORANGE = '#ff5500'
+
+
+def init_plot_settings():
+    """
+    Set defaults for all plots: font.
+    """
+    plt.rcParams["font.family"] = "Times New Roman"
+
+
+def plot_Z_ranges_together(data, file_title):
+    """
+    Plots the Z dists of LSST vs THEx for each class.
+    :param data: Dict from class name to map of {THEx : thex data, LSST_orig: LSST data}
+    """
+    FIG_WIDTH = 10
+    FIG_HEIGHT = 6
+    DPI = 100
+    f, ax = plt.subplots(nrows=2,
+                         ncols=2,
+                         sharex=True, sharey=True,
+                         figsize=(FIG_WIDTH, FIG_HEIGHT),
+                         dpi=DPI)
+    Z_bins = np.linspace(0, 1.1, 50)
+
+    def plot_data(row_index, col_index, class_data, class_label):
+        ax[row_index][col_index].hist(class_data['THEx'], bins=Z_bins, density=True,
+                                      label="THEx",  fill=False, edgecolor=LIGHT_GREEN)
+        ax[row_index][col_index].hist(class_data['LSST_orig'], bins=Z_bins, density=True,
+                                      label="LSST",  fill=False, edgecolor=LIGHT_BLUE)
+        ax[row_index][col_index].set_title(class_label, fontsize=18, y=0.85)
+
+    plot_data(0, 0, data["Unspecified Ia"], "Ia")
+    plot_data(0, 1, data["Unspecified II"], "II")
+    plot_data(1, 0, data["Ia-91bg"], "Ia-91bg")
+    plot_data(1, 1, data["TDE"], "TDE")
+
+    ax[1][0].set_xlabel("Redshift", fontsize=14)
+    ax[1][1].set_xlabel("Redshift", fontsize=14)
+    ax[0][0].set_ylabel("Density", fontsize=14)
+    ax[1][0].set_ylabel("Density", fontsize=14)
+    plt.legend(fontsize=16)
+    plt.subplots_adjust(wspace=0.01, hspace=0.01)
+    plt.savefig("../figures/analysis/" + file_title)
+
 
 def plot_Z_ranges(title, data, file_title):
     """
@@ -12,28 +62,25 @@ def plot_Z_ranges(title, data, file_title):
     """
     FIG_WIDTH = 6
     FIG_HEIGHT = 4
-    DPI = 200
+    DPI = 80
     fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT), dpi=DPI,
                            tight_layout=True, sharex=True, sharey=True)
     Z_bins = np.linspace(0, 1.1, 50)
-    LIGHT_RED = "#ffb3b3"
-    LIGHT_BLUE = "#99ccff"
-    LIGHT_GREEN = "#99ffe6"
-    DARK_BLUE = "#0000b3"
+
     ax.hist(data['THEx'], bins=Z_bins, density=True,
             label="THEx",  fill=False, edgecolor=DARK_BLUE)
     ax.hist(data['LSST_orig'], bins=Z_bins, density=True,
-            label="Rubin",  fill=False, edgecolor=LIGHT_GREEN)
+            label="LSST",  fill=False, edgecolor=LIGHT_GREEN)
+
     # ax.hist(data['LSST_filt'], bins=Z_bins, density=True,
     #         label=LSST_label,  fill=False, edgecolor=LIGHT_BLUE)
 
-    plt.title(title, fontsize=14)
+    plt.title(title, fontsize=16)
     xlabel = "Redshift"
-    plt.xlabel(xlabel, fontsize=12)
-    plt.ylabel("Density", fontsize=12)
-    plt.legend(fontsize=12)
+    plt.xlabel(xlabel, fontsize=14)
+    plt.ylabel("Density", fontsize=14)
+    plt.legend(fontsize=16)
     plt.savefig("../figures/analysis/" + file_title)
-    plt.show()
 
 
 def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cname, dataset):
@@ -70,11 +117,6 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
     # Plotting visualization parameters
     small_lw = 0.8
     large_lw = 1.2
-    LIGHT_BLUE = '#b3ccff'
-    DARK_BLUE = '#003399'
-    LIGHT_ORANGE = "#ffddcc"
-    DARK_ORANGE = '#ff5500'
-    LIGHT_GREEN = '#b3ffcc'
 
     # Reset number of bins to less for smaller classes
     # use
