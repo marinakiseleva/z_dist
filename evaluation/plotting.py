@@ -11,8 +11,7 @@ def init_plot_settings():
     """
     Set defaults for all plots: font.
     """
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
+    plt.rcParams["font.family"] = "Times New Roman"
 
 
 def plot_compare_z_dists(class_name, thex_dataset, output_dir):
@@ -210,10 +209,16 @@ def plot_met(model, L_vals, L_cis, r_vals, r_cis, baselines, label):
     plt.xticks(x_indices, x_ticks, fontsize=TICK_S)
 
     plt.legend(loc='best', fontsize=LAB_S)
-    plt.yticks(np.array([0.3, 0.6]) - 0.05, model.class_labels,  fontsize=TICK_S,
+    new_labels = []
+    for class_name in model.class_labels:
+        if class_name == "Unspecified Ia":
+            new_labels.append("Ia (unspec.)")
+        elif class_name == "Unspecified II":
+            new_labels.append("II (unspec.)")
+    plt.yticks(np.array([0.3, 0.6]) - 0.05, new_labels,  fontsize=TICK_S + 2,
                horizontalalignment='right')
-    plt.ylabel('Transient Class', fontsize=LAB_S)
-    plt.xlabel(label, fontsize=LAB_S)
+    # plt.ylabel('Transient Class', fontsize=LAB_S)
+    plt.xlabel(label, fontsize=LAB_S + 2)
     plt.savefig("../figures/testing/LSST_Evaluation_" + label + ".pdf")
 
 
