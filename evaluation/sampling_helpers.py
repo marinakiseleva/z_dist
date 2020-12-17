@@ -150,7 +150,7 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
 
     # Plot LSST data, sampled LSST, and random sample
     fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
-                           dpi=DPI,
+                           dpi=120,
                            tight_layout=True, sharex=True,  sharey=True)
 
     LIGHT_GREEN = "#b3e6b3"
@@ -165,10 +165,10 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
                 label="LSST-like sample", fill=False, edgecolor=LIGHT_RED, linewidth=1.2)
     plt.xticks(fontsize=TICK_S)
     plt.yticks(fontsize=TICK_S)
-    plt.legend(fontsize=LAB_S)
-    plt.title(class_name + " (unspec.)", fontsize=TITLE_S)
-    plt.xlabel("Redshift", fontsize=LAB_S)
-    plt.ylabel("Density", fontsize=LAB_S)
+    plt.legend(fontsize=14)
+    plt.title(class_name + " (unspec.)", fontsize=18)
+    plt.xlabel("Redshift", fontsize=14)
+    plt.ylabel("Density", fontsize=14)
     plt.savefig(output_dir + "/" + class_name + "_" + str(i) + ".pdf")
     return lsst_sample, random_sample
 

@@ -35,7 +35,7 @@ def plot_reduction(data, num_features, data_type, output_dir):
     Distinguish classes in reduced space with different colors.
     """
     fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
-                           dpi=DPI, tight_layout=True)
+                           dpi=100, tight_layout=True)
 
     rcParams['figure.figsize'] = 6, 6
     Ia_data = data[data['transient_type'] == Ia_label]
@@ -46,13 +46,14 @@ def plot_reduction(data, num_features, data_type, output_dir):
 
     for k in ax.spines.keys():
         ax.spines[k].set_color(p_colors[data_type])
+        ax.spines[k].set_linewidth(2)
 
-    plt.xlabel('x reduction', fontsize=LAB_S)
-    plt.ylabel('y reduction', fontsize=LAB_S)
+    plt.xlabel('x reduction', fontsize=12)
+    plt.ylabel('y reduction', fontsize=12)
 
-    plt.title(data_type, fontsize=TITLE_S)
-    plt.legend(fontsize=LAB_S)
-    plt.savefig(output_dir + "/" + data_type)
+    plt.title(data_type, fontsize=18)
+    plt.legend(fontsize=18)
+    plt.savefig(output_dir + "/" + data_type + ".pdf")
 
 
 def fit_and_plot(X, y, data_type, output_dir, perplexity=30.0, early_exaggeration=12.0, learning_rate=200.0, n_iter=10000, n_iter_without_progress=300):
