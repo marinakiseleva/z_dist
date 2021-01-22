@@ -5,7 +5,7 @@
 Compare z dists of LSST data and THEx data for the 4 classes for which we have data for both (Ia, II, TDE, Ia-91bg)
 """
 
-
+import os
 import sys
 import numpy as np
 
@@ -60,7 +60,7 @@ def main(argv):
                                      "Unspecified II", "Ia-91bg", "TDE"],
                        transform_features=False,
                        min_class_size=40,
-                       data_file="/Users/marina/Documents/PhD/research/astro_research/data/catalogs/v7/THEx-assembled-v7.1a-mags-legacy-xcalib-minxcal.fits"
+                       data_file=DATA_PATH
                        )
 
     data = {}

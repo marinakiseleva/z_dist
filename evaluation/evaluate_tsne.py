@@ -1,7 +1,7 @@
 """
 See how testing sets and training set used in evaluation differ in low-dimensional reps.
 """
-
+import os
 import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
@@ -12,6 +12,7 @@ from pylab import rcParams
 from models.multi_model.multi_model import MultiModel
 from evaluation.sampling_test import get_test_performance, get_test_sets
 from evaluation.plotting import *
+from estimate.constants import *
 
 
 FIG_WIDTH = 6
@@ -88,7 +89,7 @@ def main():
                        class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=True,
                        min_class_size=40,
-                       data_file="/Users/marina/Documents/PhD/research/astro_research/data/catalogs/v7/THEx-assembled-v7.1a-mags-legacy-xcalib-minxcal.fits"
+                       data_file=DATA_PATH
                        )
 
     thex_dataset = pd.concat([model.X, model.y], axis=1)
