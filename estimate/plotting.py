@@ -2,12 +2,13 @@
 Plotting code
 """
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from estimate.constants import *
 
-LIGHT_GREEN = "#b3e6b3"
-LIGHT_RED = "#ffb3b3"
-LIGHT_BLUE = "#99ccff"
+THEX_COLOR = "#ffa31a"
+LSST_COLOR = "#80ccff"
+
 DARK_BLUE = "#0000b3"
 LIGHT_ORANGE = "#ffddcc"
 DARK_ORANGE = '#ff5500'
@@ -27,32 +28,52 @@ def plot_Z_ranges_together(data, file_title):
     """
     FIG_WIDTH = 10
     FIG_HEIGHT = 6
-    DPI = 100
+    DPI = 200
     f, ax = plt.subplots(nrows=2,
                          ncols=2,
                          sharex=True, sharey=True,
                          figsize=(FIG_WIDTH, FIG_HEIGHT),
-                         dpi=DPI)
+                         dpi=600)
     Z_bins = np.linspace(0, 1.1, 50)
 
     def plot_data(row_index, col_index, class_data, class_label):
-        ax[row_index][col_index].hist(class_data['THEx'], bins=Z_bins, density=True,
-                                      label="THEx",  fill=False, edgecolor=LIGHT_GREEN)
-        ax[row_index][col_index].hist(class_data['LSST_orig'], bins=Z_bins, density=True,
-                                      label="LSST",  fill=False, edgecolor=LIGHT_BLUE)
-        ax[row_index][col_index].set_title(class_label, fontsize=18, y=0.85)
+        mpl.rcParams['hatch.linewidth'] = 1.0
+        ax[row_index][col_index].hist(class_data['LSST_orig'],
+                                      bins=Z_bins,
+                                      density=True,
+                                      label="LSST",
+                                      fill=True,
+                                      alpha=0.8,
+                                      color=LSST_COLOR)
+        # edgecolor=LSST_COLOR)
+        # hatch="x")
+        ax[row_index][col_index].hist(class_data['THEx'],
+                                      bins=Z_bins,
+                                      density=True,
+                                      label="THEx",
+                                      linewidth=2,
+                                      fill=False, edgecolor=THEX_COLOR)
+        ax[row_index][col_index].set_title(class_label, fontsize=22, y=0.8)
 
     plot_data(0, 0, data["Unspecified Ia"], "Ia (unspec.)")
     plot_data(0, 1, data["Unspecified II"], "II (unspec.)")
     plot_data(1, 0, data["Ia-91bg"], "Ia-91bg")
     plot_data(1, 1, data["TDE"], "TDE")
 
-    ax[1][0].set_xlabel("Redshift", fontsize=14)
-    ax[1][1].set_xlabel("Redshift", fontsize=14)
-    ax[0][0].set_ylabel("Density", fontsize=14)
-    ax[1][0].set_ylabel("Density", fontsize=14)
-    plt.legend(fontsize=16)
-    plt.subplots_adjust(wspace=0.01, hspace=0.01)
+    ticksize = 16
+    ax[1][0].xaxis.set_tick_params(labelsize=ticksize)
+    ax[1][1].xaxis.set_tick_params(labelsize=ticksize)
+    ax[0][0].yaxis.set_tick_params(labelsize=ticksize)
+    ax[1][0].yaxis.set_tick_params(labelsize=ticksize)
+
+    labelsize = 18
+    ax[1][0].set_xlabel("Redshift", fontsize=labelsize)
+    ax[1][1].set_xlabel("Redshift", fontsize=labelsize)
+    ax[0][0].set_ylabel("Density", fontsize=labelsize)
+    ax[1][0].set_ylabel("Density", fontsize=labelsize)
+
+    plt.legend(fontsize=18, loc="center right")
+    plt.subplots_adjust(wspace=0, hspace=0)
     plt.savefig("../figures/analysis/" + file_title)
 
 
@@ -70,10 +91,10 @@ def plot_Z_ranges(title, data, file_title):
     ax.hist(data['THEx'], bins=Z_bins, density=True,
             label="THEx",  fill=False, edgecolor=DARK_BLUE)
     ax.hist(data['LSST_orig'], bins=Z_bins, density=True,
-            label="LSST",  fill=False, edgecolor=LIGHT_GREEN)
+            label="LSST",  fill=False, edgecolor=LSST_COLOR)
 
     # ax.hist(data['LSST_filt'], bins=Z_bins, density=True,
-    #         label=LSST_label,  fill=False, edgecolor=LIGHT_BLUE)
+    #         label=LSST_label,  fill=False, edgecolor=THEX_COLOR)
 
     plt.title(title, fontsize=16)
     xlabel = "Redshift"
@@ -124,7 +145,7 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
         num_bins = 50
 
     ax.hist(lsst_orig,
-            color=LIGHT_GREEN,
+            color=LSST_COLOR,
             range=(min_val, max_val),
             density=True,
             bins=num_bins,
@@ -132,7 +153,7 @@ def plot_redshift_compare(thex_data, lsst_orig, lsst_filt, lsst_filt_label, cnam
             linewidth=large_lw,
             label="Target: Original (Count: " + orig_count + ")")
     ax.hist(lsst_filt,
-            color=LIGHT_BLUE,
+            color=THEX_COLOR,
             range=(min_val, max_val),
             density=True,
             bins=num_bins,

@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+from matplotlib import rc
 from thex_data.data_consts import *
 from models.multi_model.multi_model import MultiModel
 from evaluation.plotting import *
@@ -86,16 +86,21 @@ def get_test_sets(thex_dataset, output_dir, index, num_samples=200):
     """
     Return X and y of LSST and random sampled testing sets.
     """
-    Ia_sampled, Ia_rand_sample = get_THEx_sampled_data(class_name="Ia",
-                                                       num_samples=num_samples,
-                                                       thex_dataset=thex_dataset,
-                                                       output_dir=output_dir,
-                                                       i=index)
-    II_sampled, II_rand_sample = get_THEx_sampled_data(class_name="II",
-                                                       num_samples=num_samples,
-                                                       thex_dataset=thex_dataset,
-                                                       output_dir=output_dir,
-                                                       i=index)
+    Ia_sampled, Ia_rand_sample, Ia_LSST_Z = get_THEx_sampled_data(class_name="Ia",
+                                                                  num_samples=num_samples,
+                                                                  thex_dataset=thex_dataset,
+                                                                  i=index)
+    II_sampled, II_rand_sample, II_LSST_Z = get_THEx_sampled_data(class_name="II",
+                                                                  num_samples=num_samples,
+                                                                  thex_dataset=thex_dataset,
+                                                                  i=index)
+
+    plot_sample_dists_together(Ia_sampled,
+                               Ia_rand_sample,
+                               Ia_LSST_Z,
+                               II_sampled,
+                               II_rand_sample,
+                               II_LSST_Z, output_dir)
 
     lsst_sampled_X, lsst_sampled_y = get_source_target(
         pd.concat([Ia_sampled, II_sampled]))
@@ -105,7 +110,70 @@ def get_test_sets(thex_dataset, output_dir, index, num_samples=200):
     return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
 
 
-def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="", max_rmag=None):
+def plot_sample_dist(ax, rand_sample, lsst_sample, lsst_orig, class_name):
+
+    THEX_COLOR = "#ffa31a"
+    LSST_COLOR = "#80ccff"
+    LSST_SAMPLE_COLOR = "#24248f"
+
+    Z_bins = np.linspace(0, 1, 50)
+    a = ax.hist(lsst_orig,
+                density=True,
+                bins=Z_bins,
+                label="LSST",
+                fill=True,
+                alpha=0.8,
+                color=LSST_COLOR)
+    # edgecolor=LSST_COLOR,
+    # linewidth=1)
+    # rc('text', usetex=True)
+    # r"\textit{THEx test set}"
+    b = ax.hist(rand_sample['redshift'].values,
+                density=True,
+                bins=Z_bins,
+                label="THEx test set",
+                fill=False,
+                edgecolor=THEX_COLOR,
+                linewidth=2)
+    c = ax.hist(lsst_sample['redshift'].values,
+                density=True,
+                bins=Z_bins,
+                label="LSST-like test set",
+                fill=False,
+                edgecolor=LSST_SAMPLE_COLOR,
+                linewidth=2)
+    ax.set_title(class_name, fontsize=22, y=0.8)
+
+
+def plot_sample_dists_together(Ia_sampled, Ia_rand_sample, Ia_LSST_Z, II_sampled, II_rand_sample, II_LSST_Z, output_dir):
+    """
+    Plot LSST orig vs THEx sample vs LSST sample for each class on shared fig.
+    """
+    # Plot LSST data, sampled LSST, and random sample
+    rc('font', family="Times New Roman")
+    f, ax = plt.subplots(nrows=2,
+                         ncols=1,
+                         sharex=True, sharey=True,
+                         figsize=(5, 7),
+                         dpi=140)
+
+    plot_sample_dist(ax[0], Ia_rand_sample, Ia_sampled, Ia_LSST_Z, "Ia (unspec.)")
+    plot_sample_dist(ax[1], II_rand_sample, II_sampled, II_LSST_Z, "II (unspec.)")
+
+    ax[1].legend(fontsize=16, loc="center right")
+
+    ax[0].yaxis.set_tick_params(labelsize=16)
+    ax[1].yaxis.set_tick_params(labelsize=16)
+    ax[1].xaxis.set_tick_params(labelsize=16)
+
+    ax[1].set_xlabel("Redshift", fontsize=20)
+    ax[0].set_ylabel("Density", fontsize=20)
+    ax[1].set_ylabel("Density", fontsize=20)
+    plt.subplots_adjust(wspace=0, hspace=0)
+    plt.savefig(output_dir + "/samples.pdf", bbox_inches='tight')
+
+
+def get_THEx_sampled_data(class_name, num_samples, thex_dataset,  i=""):
     """
     Create 2 sample test sets from THEx data, one randomly sampled from our data and the other sampled with LSST redshift dist
     :param thex_dataset: DataFrame of THEx data, X and y
@@ -117,11 +185,6 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
     # Pull down LSST data
     feature_name = "r_first_mag"
     lsst_class_data = get_lsst_class_data(class_name, feature_name)
-    # cut LSST data to r mag if needed
-    lsst_label = "LSST"
-    if max_rmag is not None:
-        lsst_class_data = lsst_class_data[lsst_class_data[feature_name] <= max_rmag]
-        lsst_label += " (" + feature_name + " <= " + str(max_rmag) + ")"
 
     # 2. Get hist of redshift values, and frequencies
     lsst_z_vals = lsst_class_data['true_z'].values
@@ -148,29 +211,7 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset, output_dir, i="
     class_count = lsst_sample.shape[0]
     random_sample = thex_class_data.sample(class_count).reset_index(drop=True)
 
-    # Plot LSST data, sampled LSST, and random sample
-    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
-                           dpi=120,
-                           tight_layout=True, sharex=True,  sharey=True)
-
-    LIGHT_GREEN = "#b3e6b3"
-    LIGHT_RED = "#ffb3b3"
-    LIGHT_BLUE = "#99ccff"
-
-    a = ax.hist(lsst_z_vals, density=True, bins=Z_bins,
-                label=lsst_label, fill=False, edgecolor=LIGHT_BLUE, linewidth=1.2)
-    b = ax.hist(random_sample['redshift'].values, density=True, bins=Z_bins,
-                label="THEx sample", fill=False, edgecolor=LIGHT_GREEN, linewidth=1.2)
-    c = ax.hist(lsst_sample['redshift'].values, density=True, bins=Z_bins,
-                label="LSST-like sample", fill=False, edgecolor=LIGHT_RED, linewidth=1.2)
-    plt.xticks(fontsize=TICK_S)
-    plt.yticks(fontsize=TICK_S)
-    plt.legend(fontsize=14)
-    plt.title(class_name + " (unspec.)", fontsize=18)
-    plt.xlabel("Redshift", fontsize=14)
-    plt.ylabel("Density", fontsize=14)
-    plt.savefig(output_dir + "/" + class_name + "_" + str(i) + ".pdf")
-    return lsst_sample, random_sample
+    return lsst_sample, random_sample, lsst_z_vals
 
 
 def get_test_results(model, output_dir, iterations=100):

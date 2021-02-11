@@ -17,12 +17,14 @@ def main():
     Ia_label = 'I, Ia, _ROOT, _SN, _W_UVOPT, Unspecified Ia'
     II_label = 'CC, II, _ROOT, _SN, _W_UVOPT, Unspecified II'
 
+    init_plot_settings()
+
     model = MultiModel(cols=cols,
                        num_runs=2,
                        class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=True,
                        min_class_size=40,
-                       data_file=DATA_PATH
+                       data_file=CUR_DATA_PATH
                        )
 
     thex_dataset = pd.concat([model.X, model.y], axis=1)
@@ -94,11 +96,7 @@ def main():
     target_counts = lsst_test_y.groupby(['transient_type']).size()
     II_count = target_counts[II_label]
     Ia_count = target_counts[Ia_label]
-    print("\noriginal model class counts ")
-    print(model.class_counts)
     model.class_counts = [Ia_count, II_count]
-    print('\nnew class counts')
-    print(model.class_counts)
 
     plot_performance(model, lsst_test_y, output_dir + "/test_LSST", LSST_results)
     plot_performance(model, rand_test_y, output_dir + "/test_rand", orig_results)

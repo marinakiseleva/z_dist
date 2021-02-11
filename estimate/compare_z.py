@@ -8,11 +8,12 @@ Compare z dists of LSST data and THEx data for the 4 classes for which we have d
 import os
 import sys
 import numpy as np
-
+import pickle
 from estimate.constants import *
 from estimate.plotting import *
 from estimate.get_data import *
-
+import os.path
+from os import path
 
 from models.multi_model.multi_model import MultiModel
 
@@ -55,12 +56,19 @@ def main(argv):
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
             'redshift']
+    if path.exists('../data/zdata.pickle'):
+        with open('../data/zdata.pickle', 'rb') as handle:
+            data = pickle.load(handle)
+            init_plot_settings()
+            plot_Z_ranges_together(data, "z_compare_full.pdf")
+            return 1
+
     model = MultiModel(cols=cols,
                        class_labels=["Unspecified Ia",
                                      "Unspecified II", "Ia-91bg", "TDE"],
                        transform_features=False,
                        min_class_size=40,
-                       data_file=DATA_PATH
+                       data_file=CUR_DATA_PATH
                        )
 
     data = {}
@@ -70,14 +78,13 @@ def main(argv):
             if class_name in row['transient_type']:
                 class_indices.append(index)
         thex_Z = model.X.iloc[class_indices]['redshift'].values
-        print("\n\nFor class name THEX values are ")
-        print(thex_Z)
         LSST_Z = get_lsst_class_data(class_name=class_mapping[class_name],
                                      feature_name=lsst_feature_name)[LSST_Z_COL].values
-        print("\n\nFor lsst ")
-        print(LSST_Z)
         data[class_name] = {"THEx": thex_Z,
                             "LSST_orig": LSST_Z}
+    # Save data
+    with open('../data/zdata.pickle', 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     init_plot_settings()
     plot_Z_ranges_together(data, "z_compare_full.pdf")
