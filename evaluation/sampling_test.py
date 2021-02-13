@@ -3,7 +3,7 @@ Use same training, 2 different testing sets.
 """
 
 import pandas as pd
-
+import pickle
 from models.multi_model.multi_model import MultiModel
 from evaluation.sampling_helpers import *
 from evaluation.plotting import *
@@ -101,6 +101,10 @@ def main():
     plot_performance(model, lsst_test_y, output_dir + "/test_LSST", LSST_results)
     plot_performance(model, rand_test_y, output_dir + "/test_rand", orig_results)
     plot_performance_together(model, lsst_test_y, LSST_results, orig_results)
+
+    # Save data
+    with open('../data/full_model_data.pickle', 'wb') as handle:
+        pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == "__main__":
