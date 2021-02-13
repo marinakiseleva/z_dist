@@ -99,57 +99,45 @@ def plot_class_met(ax, indices, vals, cis, baselines, label, color):
             label=label)
     for index, baseline in enumerate(baselines_list):
         y_val = indices[index]
-        plt.vlines(x=baseline,
-                   ymin=y_val - (bar_width / 2),
-                   ymax=y_val + (bar_width / 2),
-                   linewidth=3,
-                   linestyles=(0, (1, 1)), colors=BSLN_COLOR)
+        ax.vlines(x=baseline,
+                  ymin=y_val - (bar_width / 2),
+                  ymax=y_val + (bar_width / 2),
+                  linewidth=3,
+                  linestyles=(0, (1, 1)), colors=BSLN_COLOR)
 
 
-def plot_met(model, L_vals, L_cis, r_vals, r_cis, baselines, label):
+def plot_met(axis, model, L_vals, L_cis, r_vals, r_cis, baselines, label):
     """
     Given LSST and random metrics (either purity or completeness) plot on figure
     """
-    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
-                           dpi=150,
-                           sharex=True,
-                           sharey=True,
-                           tight_layout=True)
 
     THEX_COLOR = "#ffa31a"
     LSST_SAMPLE_COLOR = "#24248f"
 
-    plot_class_met(ax=ax,
+    plot_class_met(ax=axis,
                    indices=[0.3, 0.5],
                    vals=r_vals,
                    cis=r_cis,
                    baselines=baselines,
-                   label="THEx test sets",
+                   label="THEx test\nsets",
                    color=THEX_COLOR)
 
-    plot_class_met(ax=ax,
+    plot_class_met(ax=axis,
                    indices=[0.2, 0.4],
                    vals=L_vals,
                    cis=L_cis,
                    baselines=baselines,
-                   label="LSST-like test sets",
+                   label="LSST-like\ntest sets",
                    color=LSST_SAMPLE_COLOR)
 
-    if label == 'Completeness':
-        ax.legend(loc='lower right', fontsize=14)
     # Figure formatting
-    ax.set_xlim(0, 1)
+    axis.set_xlim(0, 1)
     indices = np.linspace(0, 1, 6)
     ticks = [str(int(i)) for i in indices * 100]
-    plt.xticks(indices, ticks, fontsize=16)
+    axis.set_xticks(indices)
+    axis.set_xticklabels(ticks, fontsize=14)
 
-    plt.xlabel(label + " (%)", fontsize=20)
-    new_labels = ["Ia (unspec.)", "II (unspec.)"]
-    plt.yticks(np.array([0.3, 0.5]) - 0.05, new_labels,  fontsize=20,
-               horizontalalignment='right')
-
-    plt.gca().invert_yaxis()
-    plt.savefig("../figures/testing/LSST_Evaluation_" + label + ".pdf")
+    axis.set_xlabel(label + " (%)", fontsize=14)
 
 
 def plot_performance_together(model, test_y, LSST_results, orig_results):
@@ -166,7 +154,15 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
     c_baselines, p_baselines = compute_baselines(
         model.class_counts, model.class_labels, test_y, len(model.class_labels), None)
 
-    plot_met(model=model,
+    fig, ax = plt.subplots(figsize=(4, 3),
+                           nrows=1, ncols=2,
+                           dpi=200,
+                           sharex=True,
+                           sharey=True,
+                           tight_layout=True)
+
+    plot_met(axis=ax[0],
+             model=model,
              L_vals=L_ps,
              L_cis=L_ps_ci,
              r_vals=r_ps,
@@ -174,10 +170,21 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
              baselines=p_baselines,
              label="Purity")
 
-    plot_met(model=model,
+    plot_met(axis=ax[1],
+             model=model,
              L_vals=L_cs,
              L_cis=L_cs_ci,
              r_vals=r_cs,
              r_cis=r_cs_ci,
              baselines=c_baselines,
              label="Completeness")
+
+    # bbox_to_anchor=(1.1., 1, 0.3, .6),        (x, y, width, height)
+    ax[1].legend(fontsize=14, bbox_to_anchor=(1.1, 0.7),
+                 labelspacing=.2, handlelength=1)
+    ax[0].set_yticks(np.array([0.3, 0.5]) - 0.05)
+    new_labels = ["Ia (unspec.)", "II (unspec.)"]
+    ax[0].set_yticklabels(new_labels,  fontsize=16, horizontalalignment='right')
+    plt.subplots_adjust(wspace=0, hspace=0)
+    plt.gca().invert_yaxis()
+    plt.savefig("../figures/testing/LSST_Evaluation_Metrics.pdf", bbox_inches='tight')

@@ -38,22 +38,29 @@ def plot_Z_ranges_together(data, file_title):
 
     def plot_data(row_index, col_index, class_data, class_label):
         mpl.rcParams['hatch.linewidth'] = 1.0
+
         ax[row_index][col_index].hist(class_data['LSST_orig'],
                                       bins=Z_bins,
                                       density=True,
                                       label="LSST",
                                       fill=True,
                                       alpha=0.8,
+                                      edgecolor=None,
                                       color=LSST_COLOR)
-        # edgecolor=LSST_COLOR)
-        # hatch="x")
-        ax[row_index][col_index].hist(class_data['THEx'],
-                                      bins=Z_bins,
-                                      density=True,
+        # bins values in bin are (for left, right), left <= x < right
+        vals, bins = np.histogram(class_data['THEx'], bins=Z_bins, density=True)
+        a = np.array([0])
+        bin_indices = np.linspace(min(Z_bins), max(Z_bins), len(Z_bins))
+        bin_indices = bin_indices[1:]
+        xnew = np.concatenate((a, bin_indices), axis=0)
+        ynew = np.concatenate((a, vals), axis=0)
+
+        ax[row_index][col_index].step(x=xnew,
+                                      y=ynew,
                                       label="THEx",
                                       linewidth=2,
-                                      fill=False, edgecolor=THEX_COLOR)
-        ax[row_index][col_index].set_title(class_label, fontsize=22, y=0.8)
+                                      color=THEX_COLOR)
+        ax[row_index][col_index].set_title(class_label, fontsize=22, y=0.8, x=0.75)
 
     plot_data(0, 0, data["Unspecified Ia"], "Ia (unspec.)")
     plot_data(0, 1, data["Unspecified II"], "II (unspec.)")
@@ -72,7 +79,7 @@ def plot_Z_ranges_together(data, file_title):
     ax[0][0].set_ylabel("Density", fontsize=labelsize)
     ax[1][0].set_ylabel("Density", fontsize=labelsize)
 
-    plt.legend(fontsize=18, loc="center right")
+    ax[0][0].legend(fontsize=18, loc="upper left")
     plt.subplots_adjust(wspace=0, hspace=0)
     plt.savefig("../figures/analysis/" + file_title)
 

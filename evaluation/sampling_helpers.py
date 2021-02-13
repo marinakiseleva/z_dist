@@ -116,7 +116,26 @@ def plot_sample_dist(ax, rand_sample, lsst_sample, lsst_orig, class_name):
     LSST_COLOR = "#80ccff"
     LSST_SAMPLE_COLOR = "#24248f"
 
+    def plot_step(data, bins, axis, label, color):
+        """
+        Get hist data and plot as step graph, no inner lines
+        """
+        # bins values in bin are (for left, right), left <= x < right
+        vals, bins = np.histogram(data, bins=bins, density=True)
+        a = np.array([0])
+        bin_indices = np.linspace(min(bins), max(bins), len(bins))
+        bin_indices = bin_indices[1:]
+        xnew = np.concatenate((a, bin_indices), axis=0)
+        ynew = np.concatenate((a, vals), axis=0)
+
+        axis.step(x=xnew,
+                  y=ynew,
+                  label=label,
+                  linewidth=2,
+                  color=color)
+
     Z_bins = np.linspace(0, 1, 50)
+
     a = ax.hist(lsst_orig,
                 density=True,
                 bins=Z_bins,
@@ -124,25 +143,19 @@ def plot_sample_dist(ax, rand_sample, lsst_sample, lsst_orig, class_name):
                 fill=True,
                 alpha=0.8,
                 color=LSST_COLOR)
-    # edgecolor=LSST_COLOR,
-    # linewidth=1)
-    # rc('text', usetex=True)
-    # r"\textit{THEx test set}"
-    b = ax.hist(rand_sample['redshift'].values,
-                density=True,
-                bins=Z_bins,
-                label="THEx test set",
-                fill=False,
-                edgecolor=THEX_COLOR,
-                linewidth=2)
-    c = ax.hist(lsst_sample['redshift'].values,
-                density=True,
-                bins=Z_bins,
-                label="LSST-like test set",
-                fill=False,
-                edgecolor=LSST_SAMPLE_COLOR,
-                linewidth=2)
-    ax.set_title(class_name, fontsize=22, y=0.8)
+
+    plot_step(data=rand_sample['redshift'].values,
+              bins=Z_bins,
+              axis=ax,
+              label="THEx test set",
+              color=THEX_COLOR)
+    plot_step(data=lsst_sample['redshift'].values,
+              bins=Z_bins,
+              axis=ax,
+              label="LSST-like test set",
+              color=LSST_SAMPLE_COLOR)
+
+    ax.set_title(class_name, fontsize=22, y=0.8, x=0.75)
 
 
 def plot_sample_dists_together(Ia_sampled, Ia_rand_sample, Ia_LSST_Z, II_sampled, II_rand_sample, II_LSST_Z, output_dir):
@@ -160,7 +173,7 @@ def plot_sample_dists_together(Ia_sampled, Ia_rand_sample, Ia_LSST_Z, II_sampled
     plot_sample_dist(ax[0], Ia_rand_sample, Ia_sampled, Ia_LSST_Z, "Ia (unspec.)")
     plot_sample_dist(ax[1], II_rand_sample, II_sampled, II_LSST_Z, "II (unspec.)")
 
-    ax[1].legend(fontsize=16, loc="center right")
+    ax[0].legend(fontsize=14, loc="upper left",  labelspacing=.2, handlelength=1)
 
     ax[0].yaxis.set_tick_params(labelsize=16)
     ax[1].yaxis.set_tick_params(labelsize=16)
