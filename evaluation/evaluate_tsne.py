@@ -23,20 +23,19 @@ LSST_TEST_STR = "LSST-like test set"
 THEX_TEST_STR = "THEx test set"
 TRAIN_SET_STR = "THEx training set"
 
+
 Ia_label = 'I, Ia, _ROOT, _SN, _W_UVOPT, Unspecified Ia'
 II_label = 'CC, II, _ROOT, _SN, _W_UVOPT, Unspecified II'
 
-p_colors = {LSST_TEST_STR: "#ffb3b3",
-            THEX_TEST_STR: "#b3e6b3",
+p_colors = {LSST_TEST_STR: "#24248f",
+            THEX_TEST_STR: "#ffa31a",
             TRAIN_SET_STR: "black"}
 
 
-def plot_reduction(data, num_features, data_type, output_dir):
+def plot_reduction(ax, data, num_features, data_type, output_dir):
     """
     Distinguish classes in reduced space with different colors.
     """
-    fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
-                           dpi=100, tight_layout=True)
 
     rcParams['figure.figsize'] = 6, 6
     Ia_data = data[data['transient_type'] == Ia_label]
@@ -49,15 +48,13 @@ def plot_reduction(data, num_features, data_type, output_dir):
         ax.spines[k].set_color(p_colors[data_type])
         ax.spines[k].set_linewidth(2)
 
-    plt.xlabel('x reduction', fontsize=12)
-    plt.ylabel('y reduction', fontsize=12)
+    ax.set_xlabel('x reduction', fontsize=12)
+    ax.set_ylabel('y reduction', fontsize=12)
 
-    plt.title(data_type, fontsize=18)
-    plt.legend(fontsize=18)
-    plt.savefig(output_dir + "/" + data_type + ".pdf")
+    ax.set_title(data_type, fontsize=18, y=0.8, x=0.75)
 
 
-def fit_and_plot(X, y, data_type, output_dir, perplexity=30.0, early_exaggeration=12.0, learning_rate=200.0, n_iter=10000, n_iter_without_progress=300):
+def fit_and_plot(axis, X, y, data_type, output_dir, perplexity=30.0, early_exaggeration=12.0, learning_rate=200.0, n_iter=10000, n_iter_without_progress=300):
 
     print("\n\nEvaluating " + str(data_type) + "\n\n")
 
@@ -75,7 +72,7 @@ def fit_and_plot(X, y, data_type, output_dir, perplexity=30.0, early_exaggeratio
 
     reduced_data = pd.DataFrame(embedding, columns=['x', 'y'])
     fulldata = pd.concat([reduced_data, y], axis=1)
-    plot_reduction(fulldata, len(list(X)), data_type, output_dir)
+    plot_reduction(axis, fulldata, len(list(X)), data_type, output_dir)
 
     return tsne
 
@@ -152,17 +149,27 @@ def main():
 
     np.set_printoptions(precision=3)
 
-    fit_and_plot(X=train_X,
-                 y=train_y,
-                 data_type=TRAIN_SET_STR,
-                 output_dir=output_dir,
-                 perplexity=perplexity,
-                 early_exaggeration=early_exaggeration,
-                 learning_rate=learning_rate,
-                 n_iter=n_iter,
-                 n_iter_without_progress=n_iter_without_progress)
+    # fit_and_plot(X=train_X,
+    #              y=train_y,
+    #              data_type=TRAIN_SET_STR,
+    #              output_dir=output_dir,
+    #              perplexity=perplexity,
+    #              early_exaggeration=early_exaggeration,
+    #              learning_rate=learning_rate,
+    #              n_iter=n_iter,
+    #              n_iter_without_progress=n_iter_without_progress)
+    # fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT),
+    #                        dpi=100, tight_layout=True)
 
-    fit_and_plot(X=rand_test_X,
+    fig, ax = plt.subplots(figsize=(8, 3),
+                           nrows=1, ncols=2,
+                           dpi=150,
+                           sharex=True,
+                           sharey=True,
+                           tight_layout=True)
+
+    fit_and_plot(axis=ax[0],
+                 X=rand_test_X,
                  y=rand_test_y,
                  data_type=THEX_TEST_STR,
                  output_dir=output_dir,
@@ -172,7 +179,8 @@ def main():
                  n_iter=n_iter,
                  n_iter_without_progress=n_iter_without_progress)
 
-    fit_and_plot(X=lsst_test_X,
+    fit_and_plot(axis=ax[1],
+                 X=lsst_test_X,
                  y=lsst_test_y,
                  data_type=LSST_TEST_STR,
                  output_dir=output_dir,
@@ -181,6 +189,10 @@ def main():
                  learning_rate=learning_rate,
                  n_iter=n_iter,
                  n_iter_without_progress=n_iter_without_progress)
+
+    ax[1].legend(fontsize=14, loc="lower right",
+                 labelspacing=.2, handlelength=1)
+    plt.savefig(output_dir + "/tsne_red.pdf")
 
 if __name__ == "__main__":
     main()
