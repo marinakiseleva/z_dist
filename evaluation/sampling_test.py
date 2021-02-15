@@ -20,7 +20,7 @@ def main():
     init_plot_settings()
 
     model = MultiModel(cols=cols,
-                       num_runs=2,
+                       num_runs=100,
                        class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=True,
                        min_class_size=40,
@@ -40,7 +40,6 @@ def main():
                                                        num_samples=300)
 
         # Drop redshift from X's
-
         if 'redshift' in list(lsst_X):
             print("\n\n Dropping redshift\n")
             lsst_X = lsst_X.drop(labels=['redshift'], axis=1)
@@ -79,10 +78,11 @@ def main():
 
         lsst_test_X = pd.concat(class_dfs_X).reset_index(drop=True)
         lsst_test_y = pd.concat(class_dfs_y).reset_index(drop=True)
-        print("\n\nClass counts rand test set ")
-        print(target_counts)
-        print("\n\nClass counts LSST test set ")
-        print(lsst_test_y.groupby(['transient_type']).size())
+
+        print("Test counts in rand test set. Ia: " +
+              str(Ia_count) + ", II: " + str(II_count))
+        print("Test counts in LSST test set. " +
+              str(lsst_test_y.groupby(['transient_type']).size()))
 
         #################
         # Train and test
@@ -92,11 +92,15 @@ def main():
         LSST_results.append(get_test_performance(lsst_test_X, lsst_test_y, model))
         orig_results.append(get_test_performance(rand_test_X, rand_test_y, model))
 
-    # Save attributes to model for performance measuremetns
+    # Save attributes to model for performance measurements
     target_counts = lsst_test_y.groupby(['transient_type']).size()
     II_count = target_counts[II_label]
     Ia_count = target_counts[Ia_label]
     model.class_counts = [Ia_count, II_count]
+
+    # if path.exists('../data/full_model_data.pickle'):
+    #     print("Using previous model run data. ")
+    #     model = pickle.load(open('../data/full_model_data.pickle', 'rb'))
 
     plot_performance(model, lsst_test_y, output_dir + "/test_LSST", LSST_results)
     plot_performance(model, rand_test_y, output_dir + "/test_rand", orig_results)

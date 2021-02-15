@@ -12,7 +12,6 @@ import pickle
 from estimate.constants import *
 from estimate.plotting import *
 from estimate.get_data import *
-import os.path
 from os import path
 
 from models.multi_model.multi_model import MultiModel

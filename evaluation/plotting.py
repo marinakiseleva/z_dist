@@ -2,10 +2,13 @@ import os
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import rc
+
 from estimate.get_data import *
+from estimate.constants import *
+
 from thex_data.data_consts import *
 from mainmodel.helper_compute import *
-from matplotlib import rc
 
 
 def init_plot_settings():
@@ -92,7 +95,7 @@ def plot_class_met(ax, indices, vals, cis, baselines, label, color):
             width=val_list,
             height=bar_width,
             xerr=errs,
-            capsize=7,
+            capsize=9,
             edgecolor=BAR_EDGE_COLOR,
             ecolor=INTVL_COLOR,
             color=color,
@@ -110,9 +113,6 @@ def plot_met(axis, model, L_vals, L_cis, r_vals, r_cis, baselines, label):
     """
     Given LSST and random metrics (either purity or completeness) plot on figure
     """
-
-    THEX_COLOR = "#ffa31a"
-    LSST_SAMPLE_COLOR = "#24248f"
 
     plot_class_met(ax=axis,
                    indices=[0.3, 0.5],
@@ -133,11 +133,10 @@ def plot_met(axis, model, L_vals, L_cis, r_vals, r_cis, baselines, label):
     # Figure formatting
     axis.set_xlim(0, 1)
     indices = np.linspace(0, 1, 6)
-    ticks = [str(int(i)) for i in indices * 100]
+    ticks = ['0', '20', '40', '60', '80', '']
     axis.set_xticks(indices)
-    axis.set_xticklabels(ticks, fontsize=14)
-
-    axis.set_xlabel(label + " (%)", fontsize=14)
+    axis.set_xticklabels(ticks, fontsize=16)
+    axis.set_xlabel(label + " (%)", fontsize=16)
 
 
 def plot_performance_together(model, test_y, LSST_results, orig_results):
@@ -154,12 +153,11 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
     c_baselines, p_baselines = compute_baselines(
         model.class_counts, model.class_labels, test_y, len(model.class_labels), None)
 
-    fig, ax = plt.subplots(figsize=(4, 3),
+    fig, ax = plt.subplots(figsize=(6, 3),
                            nrows=1, ncols=2,
                            dpi=200,
                            sharex=True,
-                           sharey=True,
-                           tight_layout=True)
+                           sharey=True)
 
     plot_met(axis=ax[0],
              model=model,
@@ -180,11 +178,13 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
              label="Completeness")
 
     # bbox_to_anchor=(1.1., 1, 0.3, .6),        (x, y, width, height)
-    ax[1].legend(fontsize=14, bbox_to_anchor=(1.1, 0.7),
+    ax[1].legend(fontsize=18, bbox_to_anchor=(1.1, 0.7),
                  labelspacing=.2, handlelength=1)
     ax[0].set_yticks(np.array([0.3, 0.5]) - 0.05)
     new_labels = ["Ia (unspec.)", "II (unspec.)"]
-    ax[0].set_yticklabels(new_labels,  fontsize=16, horizontalalignment='right')
-    plt.subplots_adjust(wspace=0, hspace=0)
+    ax[0].set_yticklabels(new_labels,  fontsize=18, horizontalalignment='right')
     plt.gca().invert_yaxis()
+
+    plt.subplots_adjust(wspace=0, hspace=0)
+
     plt.savefig("../figures/testing/LSST_Evaluation_Metrics.pdf", bbox_inches='tight')

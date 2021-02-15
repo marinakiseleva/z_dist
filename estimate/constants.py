@@ -4,6 +4,10 @@ CPU_COUNT = 8
 NUM_BINS = 100
 TARGET_LABEL = 'transient_type'
 
+
+THEX_COLOR = "#ffa31a"
+LSST_SAMPLE_COLOR = "#24248f"
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
 DATA_DIR = ROOT_DIR + '/data/'
 

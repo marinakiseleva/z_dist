@@ -2,12 +2,15 @@
 See how testing sets and training set used in evaluation differ in low-dimensional reps.
 """
 import os
+import pickle
+from os import path
 import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
 from thex_data.data_consts import *
 import matplotlib.pyplot as plt
 from pylab import rcParams
+
 
 from models.multi_model.multi_model import MultiModel
 from evaluation.sampling_test import get_test_performance, get_test_sets
@@ -41,17 +44,18 @@ def plot_reduction(ax, data, num_features, data_type, output_dir):
     Ia_data = data[data['transient_type'] == Ia_label]
     II_data = data[data['transient_type'] == II_label]
 
-    ax.scatter(Ia_data['x'], Ia_data['y'], color="red", label="Ia")
-    ax.scatter(II_data['x'], II_data['y'], color="blue", label="II")
+    ax.scatter(Ia_data['x'], Ia_data['y'], color="#54534f",
+               label="Ia (unspec.)", marker="+")
+    ax.scatter(II_data['x'], II_data['y'], color="#b5b3aa",
+               label="II (unspec.)", marker="x")
 
     for k in ax.spines.keys():
         ax.spines[k].set_color(p_colors[data_type])
         ax.spines[k].set_linewidth(2)
 
-    ax.set_xlabel('x reduction', fontsize=12)
-    ax.set_ylabel('y reduction', fontsize=12)
-
-    ax.set_title(data_type, fontsize=18, y=0.8, x=0.75)
+    ax.set_xlabel('x reduction', fontsize=16)
+    ax.tick_params(axis="x", labelsize=15)
+    ax.tick_params(axis="y", labelsize=15)
 
 
 def fit_and_plot(axis, X, y, data_type, output_dir, perplexity=30.0, early_exaggeration=12.0, learning_rate=200.0, n_iter=10000, n_iter_without_progress=300):
@@ -81,13 +85,20 @@ def main():
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag', 'redshift']
 
-    model = MultiModel(cols=cols,
-                       num_runs=2,
-                       class_labels=['Unspecified Ia', 'Unspecified II'],
-                       transform_features=True,
-                       min_class_size=40,
-                       data_file=DATA_PATH
-                       )
+    if path.exists('../data/modelsave.pickle'):
+        with open('../data/modelsave.pickle', 'rb') as handle:
+            model = pickle.load(handle)
+    else:
+        model = MultiModel(cols=cols,
+                           num_runs=2,
+                           class_labels=['Unspecified Ia', 'Unspecified II'],
+                           transform_features=True,
+                           min_class_size=40,
+                           data_file=CUR_DATA_PATH
+                           )
+        # Save data
+        with open('../data/modelsave.pickle', 'wb') as handle:
+            pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     thex_dataset = pd.concat([model.X, model.y], axis=1)
     output_dir = "../figures/testing"
@@ -135,14 +146,9 @@ def main():
 
     lsst_test_X = pd.concat(class_dfs_X).reset_index(drop=True)
     lsst_test_y = pd.concat(class_dfs_y).reset_index(drop=True)
-    print("\n\nClass counts rand test set ")
-    print(target_counts)
-    print("\n\nClass counts LSST test set ")
-    print(lsst_test_y.groupby(['transient_type']).size())
 
-    #  learning_rate  [10.0, 1000.0]
-    n_iter = 500000  # 00
-    n_iter_without_progress = 800
+    n_iter = 50000
+    n_iter_without_progress = 1000
     early_exaggeration = 12
     perplexity = 5
     learning_rate = 10
@@ -163,10 +169,7 @@ def main():
 
     fig, ax = plt.subplots(figsize=(8, 3),
                            nrows=1, ncols=2,
-                           dpi=150,
-                           sharex=True,
-                           sharey=True,
-                           tight_layout=True)
+                           dpi=200)
 
     fit_and_plot(axis=ax[0],
                  X=rand_test_X,
@@ -190,9 +193,16 @@ def main():
                  n_iter=n_iter,
                  n_iter_without_progress=n_iter_without_progress)
 
-    ax[1].legend(fontsize=14, loc="lower right",
+    ax[1].legend(fontsize=18, bbox_to_anchor=(1.1, 0.7),
                  labelspacing=.2, handlelength=1)
-    plt.savefig(output_dir + "/tsne_red.pdf")
+
+    ax[0].set_ylabel('y reduction', fontsize=16)
+    ax[0].set_title(THEX_TEST_STR, fontsize=18, color=THEX_COLOR)
+    ax[1].set_title("LSST-like test set", fontsize=18,  color=LSST_SAMPLE_COLOR)
+    plt.savefig(output_dir + "/tsne_red.pdf", bbox_inches='tight')
+
+    # with open('../data/modelsave.pickle', 'wb') as handle:
+    #         pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
     main()
