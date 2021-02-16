@@ -1,6 +1,10 @@
 """
 Determine if the model does any better or worse with a different distribution of transient events, for the testing data. 
 """
+import warnings
+warnings.filterwarnings("ignore")
+
+
 from datetime import datetime
 import os
 import numpy as np
@@ -252,6 +256,11 @@ def get_test_results(model, output_dir, iterations=100):
         X_orig = X_orig[ordered_mags]
         X_train = X_train[ordered_mags]
 
+        print("\nTraining set size " + str(X_train.shape[0]))
+        print("\nClass counts for LSST test set " +
+              str(y_lsst.groupby(['transient_type']).size()))
+        print("\nClass counts for rand test set " +
+              str(y_orig.groupby(['transient_type']).size()))
         # Train model on sampled set
         model.train_model(X_train, y_train)
 
@@ -266,6 +275,8 @@ def get_test_results(model, output_dir, iterations=100):
     # Visualize performance of randomly sampled data
     plot_performance(model, y_orig, output_dir + "/orig_test", orig_results)
 
+    plot_performance_together(model, y_lsst, LSST_results, orig_results)
+
 
 def main():
 
@@ -274,7 +285,7 @@ def main():
     now = datetime.now()
     dt_string = now.strftime("%d_%m_%Y__%H_%M_%S")
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
-    output_dir = ROOT_DIR + "/output/" + dt_string
+    output_dir = ROOT_DIR + "/figures/testing/" + dt_string
     os.mkdir(output_dir)
 
     init_plot_settings()
@@ -285,7 +296,8 @@ def main():
     model = MultiModel(cols=cols,
                        class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=False,
-                       min_class_size=40
+                       min_class_size=40,
+                       data_file=CUR_DATA_PATH
                        )
     model.dir = output_dir
 

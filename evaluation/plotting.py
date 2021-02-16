@@ -155,7 +155,7 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
 
     fig, ax = plt.subplots(figsize=(6, 3),
                            nrows=1, ncols=2,
-                           dpi=200,
+                           dpi=600,
                            sharex=True,
                            sharey=True)
 
@@ -178,11 +178,11 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
              label="Completeness")
 
     # bbox_to_anchor=(1.1., 1, 0.3, .6),        (x, y, width, height)
-    ax[1].legend(fontsize=18, bbox_to_anchor=(1.1, 0.7),
+    ax[1].legend(fontsize=16, bbox_to_anchor=(1.1, 0.7),
                  labelspacing=.2, handlelength=1)
     ax[0].set_yticks(np.array([0.3, 0.5]) - 0.05)
     new_labels = ["Ia (unspec.)", "II (unspec.)"]
-    ax[0].set_yticklabels(new_labels,  fontsize=18, horizontalalignment='right')
+    ax[0].set_yticklabels(new_labels,  fontsize=16, horizontalalignment='right')
     plt.gca().invert_yaxis()
 
     plt.subplots_adjust(wspace=0, hspace=0)
