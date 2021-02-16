@@ -1,6 +1,8 @@
 """
 Use same training, 2 different testing sets.
 """
+import warnings
+warnings.filterwarnings("ignore")
 
 import pandas as pd
 import pickle
@@ -11,6 +13,8 @@ from estimate.constants import *
 
 
 def main():
+
+    raise ValueError("DO NOT USE THIS SCRIPT! USE SAMPLING_HELPERS.")
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag', 'redshift']
 
@@ -20,7 +24,7 @@ def main():
     init_plot_settings()
 
     model = MultiModel(cols=cols,
-                       num_runs=100,
+                       num_runs=2,
                        class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=True,
                        min_class_size=40,
@@ -37,7 +41,8 @@ def main():
         lsst_X, lsst_y, rand_X, rand_y = get_test_sets(thex_dataset=thex_dataset,
                                                        output_dir=output_dir,
                                                        index="",
-                                                       num_samples=300)
+                                                       num_samples=200)
+        # Remove test data from training set
 
         # Drop redshift from X's
         if 'redshift' in list(lsst_X):
