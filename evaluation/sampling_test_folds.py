@@ -1,5 +1,7 @@
 """
 Determine if the model does any better or worse with a different distribution of transient events, for the testing data. 
+
+Use unique test sets each time. 
 """
 import warnings
 warnings.filterwarnings("ignore")
@@ -90,28 +92,35 @@ def get_test_sets(thex_dataset, output_dir, index, num_samples=200):
     """
     Return X and y of LSST and random sampled testing sets.
     """
-    Ia_sampled, Ia_rand_sample, Ia_LSST_Z = get_THEx_sampled_data(class_name="Ia",
-                                                                  num_samples=num_samples,
-                                                                  thex_dataset=thex_dataset,
-                                                                  i=index)
-    II_sampled, II_rand_sample, II_LSST_Z = get_THEx_sampled_data(class_name="II",
-                                                                  num_samples=num_samples,
-                                                                  thex_dataset=thex_dataset,
-                                                                  i=index)
+    Ia_LSST, Ia_THEx, Ia_LSST_Z, test_set = sample_data(class_name="Ia",
+                                                        num_samples=num_samples,
+                                                        thex_dataset=thex_dataset,
+                                                        i=index)
+    # if Ia_LSST.shape[0] != num_samples:
+    #     print("Resetting sample count to match Ia.")
+    #     num_samples = Ia_LSST.shape[0]
 
-    plot_sample_dists_together(Ia_sampled,
-                               Ia_rand_sample,
+    II_LSST, II_THEx, II_LSST_Z, test_set = sample_data(class_name="II",
+                                                        num_samples=num_samples,
+                                                        thex_dataset=thex_dataset,
+                                                        i=index)
+
+    print("\nSampled " + str(Ia_LSST.shape[0]) + " Ia, " + str(II_LSST.shape[0]) + " II")
+
+    plot_sample_dists_together(Ia_LSST,
+                               Ia_THEx,
                                Ia_LSST_Z,
-                               II_sampled,
-                               II_rand_sample,
-                               II_LSST_Z, output_dir)
+                               II_LSST,
+                               II_THEx,
+                               II_LSST_Z,
+                               output_dir,
+                               index=index)
 
-    lsst_sampled_X, lsst_sampled_y = get_source_target(
-        pd.concat([Ia_sampled, II_sampled]))
-
-    orig_sampled_X, orig_sampled_y = get_source_target(
-        pd.concat([Ia_rand_sample, II_rand_sample]))
-    return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
+    LSST_X, LSST_y = get_source_target(
+        pd.concat([Ia_LSST, II_LSST]))
+    THEx_X, THEx_y = get_source_target(
+        pd.concat([Ia_THEx, II_THEx]))
+    return LSST_X, LSST_y, THEx_X, THEx_y, test_set
 
 
 def plot_sample_dist(ax, rand_sample, lsst_sample, lsst_orig, class_name):
@@ -162,7 +171,7 @@ def plot_sample_dist(ax, rand_sample, lsst_sample, lsst_orig, class_name):
     ax.set_title(class_name, fontsize=22, y=0.8, x=0.75)
 
 
-def plot_sample_dists_together(Ia_sampled, Ia_rand_sample, Ia_LSST_Z, II_sampled, II_rand_sample, II_LSST_Z, output_dir):
+def plot_sample_dists_together(Ia_sampled, Ia_rand_sample, Ia_LSST_Z, II_sampled, II_rand_sample, II_LSST_Z, output_dir, index):
     """
     Plot LSST orig vs THEx sample vs LSST sample for each class on shared fig.
     """
@@ -187,12 +196,13 @@ def plot_sample_dists_together(Ia_sampled, Ia_rand_sample, Ia_LSST_Z, II_sampled
     ax[0].set_ylabel("Density", fontsize=20)
     ax[1].set_ylabel("Density", fontsize=20)
     plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig(output_dir + "/samples.pdf", bbox_inches='tight')
+    plt.savefig(output_dir + "/samples_" + str(index) + ".pdf", bbox_inches='tight')
 
 
-def get_THEx_sampled_data(class_name, num_samples, thex_dataset,  i=""):
+def sample_data(class_name, num_samples, thex_dataset,  i=""):
     """
-    Create 2 sample test sets from THEx data, one randomly sampled from our data and the other sampled with LSST redshift dist
+    Create 2 sample test sets from THEx data, one randomly sampled from our data and the other sampled with LSST redshift dist. Return test sets AND the dataset we sampled from, with those test samples now removed. 
+    :param class_name: Name of class we are sampling. Only handles Ia and II.
     :param thex_dataset: DataFrame of THEx data, X and y
     :param i: iteration 
     """
@@ -222,13 +232,26 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset,  i=""):
             f_df = f_df.sample(n=int(samples))
             lsst_sample.append(f_df)
         else:
+            print("Not enough in this range by " + str(int(f_df.shape[0] - samples)))
             lsst_sample.append(f_df)
-    lsst_sample = pd.concat(lsst_sample).reset_index(drop=True)
 
+    lsst_sample = pd.concat(lsst_sample)
     class_count = lsst_sample.shape[0]
-    random_sample = thex_class_data.sample(class_count).reset_index(drop=True)
+    random_sample = thex_class_data.sample(class_count)
 
-    return lsst_sample, random_sample, lsst_z_vals
+    # # Dropping the test set samples from the whole training set.
+    # LSST_indices = list(lsst_sample.index.values)
+    # rand_indices = list(random_sample.index.values)
+    # all_indices = list(set(LSST_indices + rand_indices))
+    # orig_size = thex_dataset.shape[0]
+    # thex_dataset.drop(index=all_indices, inplace=True)
+    # new_size = thex_dataset.shape[0]
+    # print("Whole test set goes from size " + str(orig_size) + " to size " + str(new_size))
+
+    lsst_sample.reset_index(drop=True, inplace=True)
+    random_sample.reset_index(drop=True, inplace=True)
+
+    return lsst_sample, random_sample, lsst_z_vals, thex_dataset
 
 
 def get_test_results(model, output_dir, iterations=100):
@@ -242,25 +265,26 @@ def get_test_results(model, output_dir, iterations=100):
     LSST_results = []
     orig_results = []
 
+    whole_test_set = thex_dataset.copy(True)
     for i in range(model.num_runs):
         # Resample testing sets each run
-        X_lsst, y_lsst, X_orig, y_orig = get_test_sets(
-            thex_dataset, output_dir, i)
+        print("\n\nIteration " + str(i))
+        print("whole test set size " + str(whole_test_set.shape[0]))
+        X_lsst, y_lsst, X_orig, y_orig, whole_test_set = get_test_sets(
+            whole_test_set,
+            output_dir,
+            i,
+            num_samples=100)
 
         # Update training data to remove testing sets
         X_train, y_train = get_training_data(X_lsst, X_orig, model.X, model.y)
-        print("Training set size is " + str(X_train.shape[0]))
 
-        # Ensure all X sets have columns in same order
+        # Ensure all X sets have columns in same order (and no redshift as feature)
         X_lsst = X_lsst[ordered_mags]
         X_orig = X_orig[ordered_mags]
         X_train = X_train[ordered_mags]
 
-        print("\nTraining set size " + str(X_train.shape[0]))
-        print("\nClass counts for LSST test set " +
-              str(y_lsst.groupby(['transient_type']).size()))
-        print("\nClass counts for rand test set " +
-              str(y_orig.groupby(['transient_type']).size()))
+        print("\nTraining set size: " + str(X_train.shape[0]))
         # Train model on sampled set
         model.train_model(X_train, y_train)
 
@@ -303,7 +327,7 @@ def main():
 
     get_test_results(model=model,
                      output_dir=output_dir,
-                     iterations=2)
+                     iterations=10)
 
 
 if __name__ == "__main__":
