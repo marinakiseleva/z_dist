@@ -42,7 +42,8 @@ def get_filt_LSST_Z(min_feature, max_feature, data):
 class_mapping = {"Unspecified Ia": "Ia",
                  "Unspecified II": "II",
                  "TDE": "TDE",
-                 "Ia-91bg": "Ia-91bg"}
+                 "Ia-91bg": "Ia-91bg",
+                 "Ibc": "Ibc"}
 
 
 def main(argv):
@@ -61,13 +62,14 @@ def main(argv):
             init_plot_settings()
             plot_Z_ranges_together(data, "z_compare_full.pdf")
             return 1
-
+    labels = ["Unspecified Ia", "Unspecified II", "Ia-91bg",
+              "TDE", "Ib", "Ic", "Ib/c", "Unspecified Ib",  "IIb"]
     model = MultiModel(cols=cols,
-                       class_labels=["Unspecified Ia",
-                                     "Unspecified II", "Ia-91bg", "TDE"],
+                       class_labels=labels,
                        transform_features=False,
                        min_class_size=40,
-                       data_file=CUR_DATA_PATH
+                       data_file=CUR_DATA_PATH,
+                       lsst_test=True
                        )
 
     data = {}

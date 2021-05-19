@@ -86,16 +86,17 @@ def get_test_performance(X, y, model):
     return probabilities
 
 
-def get_test_sets(thex_dataset, output_dir, index, num_samples=200):
+def get_test_sets(thex_dataset, output_dir, index):
     """
     Return X and y of LSST and random sampled testing sets.
+    Sample the given numbers of Ia and II to get roughly 100 samples each.
     """
     Ia_sampled, Ia_rand_sample, Ia_LSST_Z = get_THEx_sampled_data(class_name="Ia",
-                                                                  num_samples=num_samples,
+                                                                  num_samples=145,
                                                                   thex_dataset=thex_dataset,
                                                                   i=index)
     II_sampled, II_rand_sample, II_LSST_Z = get_THEx_sampled_data(class_name="II",
-                                                                  num_samples=num_samples,
+                                                                  num_samples=129,
                                                                   thex_dataset=thex_dataset,
                                                                   i=index)
 
@@ -231,6 +232,18 @@ def get_THEx_sampled_data(class_name, num_samples, thex_dataset,  i=""):
     return lsst_sample, random_sample, lsst_z_vals
 
 
+def get_cc(y, cn):
+    """
+    get class counts
+    """
+    a = 0
+    for index, row in y.iterrows():
+        labels = convert_str_to_list(row['transient_type'])
+        if cn in labels:
+            a += 1
+    return a
+
+
 def get_test_results(model, output_dir, iterations=100):
     """
     Train on model data and test on passed in data for X trials, and visualize results.
@@ -243,9 +256,10 @@ def get_test_results(model, output_dir, iterations=100):
     orig_results = []
 
     for i in range(model.num_runs):
+        print("\n\nIteration " + str(i))
         # Resample testing sets each run
         X_lsst, y_lsst, X_orig, y_orig = get_test_sets(
-            thex_dataset, output_dir, i, num_samples=100)
+            thex_dataset, output_dir, i)
 
         # Update training data to remove testing sets
         X_train, y_train = get_training_data(X_lsst, X_orig, model.X, model.y)
@@ -255,13 +269,12 @@ def get_test_results(model, output_dir, iterations=100):
         X_orig = X_orig[ordered_mags]
         X_train = X_train[ordered_mags]
 
-        print("features in x train " + str(list(X_train)))
-
         print("\nTraining set size: " + str(X_train.shape[0]))
-        print("\nClass counts for LSST test set " +
-              str(y_lsst.groupby(['transient_type']).size()))
-        print("\nClass counts for rand test set " +
-              str(y_orig.groupby(['transient_type']).size()))
+        print("LSST Test Set Ia count: " + str(get_cc(y_lsst, "Unspecified Ia")))
+        print("LSST Test Set II count: " + str(get_cc(y_lsst, "Unspecified II")))
+        print("THEx Test Set Ia count: " + str(get_cc(y_orig, "Unspecified Ia")))
+        print("THEx Test Set II count: " + str(get_cc(y_orig, "Unspecified II")))
+
         # Train model on sampled set
         model.train_model(X_train, y_train)
 
@@ -276,7 +289,7 @@ def get_test_results(model, output_dir, iterations=100):
     # Visualize performance of randomly sampled data
     plot_performance(model, y_orig, output_dir + "/orig_test", orig_results)
 
-    plot_performance_together(model, y_lsst, LSST_results, orig_results)
+    plot_performance_together(model, y_lsst, LSST_results, orig_results, output_dir)
 
 
 def main():
@@ -304,7 +317,7 @@ def main():
 
     get_test_results(model=model,
                      output_dir=output_dir,
-                     iterations=1)
+                     iterations=10)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
-
+import matplotlib as mpl
 from estimate.get_data import *
 from estimate.constants import *
 
@@ -15,7 +15,9 @@ def init_plot_settings():
     """
     Set defaults for all plots: font.
     """
-    plt.rcParams["font.family"] = "Times New Roman"
+    rc('text', usetex=True)
+    mpl.rcParams['font.serif'] = ['times', 'times new roman']
+    mpl.rcParams['font.family'] = 'serif'
 
 
 def plot_performance(model, testdata_y, output_dir, results):
@@ -72,7 +74,7 @@ def plot_class_met(ax, indices, vals, cis, baselines, label, color):
     :param vals: Dict from class name to value
     :param cis: Dict from class name to [] confidence intervals
     :param baselines: dict from class name to baseline
-    :param label: label for these bars. 
+    :param label: label for these bars.
     """
 
     # Convert all dicts to same order of lists
@@ -87,7 +89,7 @@ def plot_class_met(ax, indices, vals, cis, baselines, label, color):
 
     errs = prep_err_bars(cis_list, val_list)
 
-    bar_width = 0.1
+    bar_width = 0.05
     INTVL_COLOR = "black"
     BSLN_COLOR = "#ff1a1a"
     BAR_EDGE_COLOR = "black"
@@ -95,7 +97,7 @@ def plot_class_met(ax, indices, vals, cis, baselines, label, color):
             width=val_list,
             height=bar_width,
             xerr=errs,
-            capsize=9,
+            capsize=7,
             edgecolor=BAR_EDGE_COLOR,
             ecolor=INTVL_COLOR,
             color=color,
@@ -105,7 +107,7 @@ def plot_class_met(ax, indices, vals, cis, baselines, label, color):
         ax.vlines(x=baseline,
                   ymin=y_val - (bar_width / 2),
                   ymax=y_val + (bar_width / 2),
-                  linewidth=3,
+                  linewidth=2,
                   linestyles=(0, (1, 1)), colors=BSLN_COLOR)
 
 
@@ -114,8 +116,10 @@ def plot_met(axis, model, L_vals, L_cis, r_vals, r_cis, baselines, label):
     Given LSST and random metrics (either purity or completeness) plot on figure
     """
 
+    thex_y_points = [0.2, 0.3]
+    lsst_y_points = [0.25, 0.35]
     plot_class_met(ax=axis,
-                   indices=[0.3, 0.5],
+                   indices=thex_y_points,
                    vals=r_vals,
                    cis=r_cis,
                    baselines=baselines,
@@ -123,7 +127,7 @@ def plot_met(axis, model, L_vals, L_cis, r_vals, r_cis, baselines, label):
                    color=THEX_COLOR)
 
     plot_class_met(ax=axis,
-                   indices=[0.2, 0.4],
+                   indices=lsst_y_points,
                    vals=L_vals,
                    cis=L_cis,
                    baselines=baselines,
@@ -135,11 +139,11 @@ def plot_met(axis, model, L_vals, L_cis, r_vals, r_cis, baselines, label):
     indices = np.linspace(0, 1, 6)
     ticks = ['0', '20', '40', '60', '80', '']
     axis.set_xticks(indices)
-    axis.set_xticklabels(ticks, fontsize=16)
-    axis.set_xlabel(label + " (%)", fontsize=16)
+    axis.set_xticklabels(ticks, fontsize=14)
+    axis.set_xlabel(label + " (\%)", fontsize=14)
 
 
-def plot_performance_together(model, test_y, LSST_results, orig_results):
+def plot_performance_together(model, test_y, LSST_results, orig_results, output_dir):
     """
     Plot performance of LSST test set vs regular test set; purity and completeness.
     :param model: Initialized THEx model used
@@ -149,13 +153,16 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
     """
     L_ps, L_cs, L_ps_ci, L_cs_ci = get_model_mets(model, LSST_results)
     r_ps, r_cs, r_ps_ci, r_cs_ci = get_model_mets(model, orig_results)
-
+    print("original model class coutns " + str(model.class_counts))
+    model.class_counts = {"Unspecified Ia": 100, "Unspecified II": 100}
     c_baselines, p_baselines = compute_baselines(
         model.class_counts, model.class_labels, test_y, len(model.class_labels), None)
 
-    fig, ax = plt.subplots(figsize=(6, 3),
+    mpl.rcParams['font.serif'] = ['times', 'times new roman']
+    mpl.rcParams['font.family'] = 'serif'
+    fig, ax = plt.subplots(figsize=(4, 1.5),
                            nrows=1, ncols=2,
-                           dpi=600,
+                           dpi=150,
                            sharex=True,
                            sharey=True)
 
@@ -178,13 +185,15 @@ def plot_performance_together(model, test_y, LSST_results, orig_results):
              label="Completeness")
 
     # bbox_to_anchor=(1.1., 1, 0.3, .6),        (x, y, width, height)
-    ax[1].legend(fontsize=16, bbox_to_anchor=(1.1, 0.7),
+    ax[1].legend(fontsize=14, bbox_to_anchor=(1.1, 1),
                  labelspacing=.2, handlelength=1)
-    ax[0].set_yticks(np.array([0.3, 0.5]) - 0.05)
+    yticks = [0.22, 0.32]
+    ax[0].set_yticks(np.array(yticks))
     new_labels = ["Ia (unspec.)", "II (unspec.)"]
-    ax[0].set_yticklabels(new_labels,  fontsize=16, horizontalalignment='right')
+    ax[0].set_yticklabels(new_labels,  fontsize=14, horizontalalignment='right')
     plt.gca().invert_yaxis()
 
     plt.subplots_adjust(wspace=0, hspace=0)
-
-    plt.savefig("../figures/testing/LSST_Evaluation_Metrics.pdf", bbox_inches='tight')
+    print(output_dir)
+    plt.savefig(output_dir + "/LSST_Evaluation_Metrics.pdf",
+                bbox_inches='tight')

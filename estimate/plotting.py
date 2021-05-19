@@ -27,13 +27,14 @@ def plot_Z_ranges_together(data, file_title):
     :param data: Dict from class name to map of {THEx : thex data, LSST_orig: LSST data}
     """
     FIG_WIDTH = 10
-    FIG_HEIGHT = 6
+    FIG_HEIGHT = 5
     DPI = 200
     f, ax = plt.subplots(nrows=2,
-                         ncols=2,
+                         ncols=3,
                          sharex=True, sharey=True,
                          figsize=(FIG_WIDTH, FIG_HEIGHT),
                          dpi=600)
+
     Z_bins = np.linspace(0, 1.1, 50)
 
     def plot_data(row_index, col_index, class_data, class_label):
@@ -54,32 +55,41 @@ def plot_Z_ranges_together(data, file_title):
         bin_indices = bin_indices[1:]
         xnew = np.concatenate((a, bin_indices), axis=0)
         ynew = np.concatenate((a, vals), axis=0)
-
+        ax[row_index][col_index].xaxis.set_tick_params(labelsize=16)
+        ax[row_index][col_index].yaxis.set_tick_params(labelsize=16)
+        ax[row_index][col_index].set_xlabel("Redshift", fontsize=18)
         ax[row_index][col_index].step(x=xnew,
                                       y=ynew,
                                       label="THEx",
                                       linewidth=2,
                                       color=THEX_COLOR)
-        ax[row_index][col_index].set_title(class_label, fontsize=22, y=0.8, x=0.75)
+        ax[row_index][col_index].set_title(class_label, fontsize=20, y=0.65, x=0.75)
 
-    plot_data(0, 0, data["Unspecified Ia"], "Ia (unspec.)")
-    plot_data(0, 1, data["Unspecified II"], "II (unspec.)")
-    plot_data(1, 0, data["Ia-91bg"], "Ia-91bg")
+        ax[row_index][col_index].tick_params(
+            axis='x',           # changes apply to the x-axis
+            which='both',       # both major and minor ticks are affected
+            bottom=True,
+            top=False,
+            labelbottom=True)
+
+    plot_data(0, 0, data["Unspecified Ia"], "Ia\n(unspec.)")
+    plot_data(0, 1, data["Ia-91bg"], "Ia-91bg")
+    plot_data(0, 2, data["Ibc"], "Ibc")
+
+    plot_data(1, 0, data["Unspecified II"], "II\n(unspec.)")
     plot_data(1, 1, data["TDE"], "TDE")
 
-    ticksize = 16
-    ax[1][0].xaxis.set_tick_params(labelsize=ticksize)
-    ax[1][1].xaxis.set_tick_params(labelsize=ticksize)
-    ax[0][0].yaxis.set_tick_params(labelsize=ticksize)
-    ax[1][0].yaxis.set_tick_params(labelsize=ticksize)
-
     labelsize = 18
-    ax[1][0].set_xlabel("Redshift", fontsize=labelsize)
-    ax[1][1].set_xlabel("Redshift", fontsize=labelsize)
     ax[0][0].set_ylabel("Density", fontsize=labelsize)
     ax[1][0].set_ylabel("Density", fontsize=labelsize)
+    # ax[1][2].axis('off')
+    ax[0][2].set_visible(True)
+    # ax[1][2].set_axis_off()
+    f.delaxes(ax[1, 2])
 
-    ax[0][0].legend(fontsize=18, loc="upper left")
+    ax[0][2].xaxis.set_tick_params(labelsize=14)
+
+    ax[0][0].legend(fontsize=16, loc="upper left", labelspacing=.2, handlelength=1)
     plt.subplots_adjust(wspace=0, hspace=0)
     plt.savefig("../figures/analysis/" + file_title)
 

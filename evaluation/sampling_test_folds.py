@@ -1,7 +1,7 @@
 """
-Determine if the model does any better or worse with a different distribution of transient events, for the testing data. 
+Determine if the model does any better or worse with a different distribution of transient events, for the testing data.  
 
-Use unique test sets each time. 
+To use unique test sets each time set USING_FOLDS=True; BUT this will vastly reduce the # of samples tested at high redshifts each time, so be cautious.
 """
 import warnings
 warnings.filterwarnings("ignore")
@@ -22,6 +22,8 @@ from estimate.get_data import *
 
 ordered_mags = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
                 "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag']
+
+USING_FOLDS = False
 
 
 def remove_data(alt_X, orig_X, orig_y):
@@ -240,13 +242,15 @@ def sample_data(class_name, num_samples, thex_dataset,  i=""):
     random_sample = thex_class_data.sample(class_count)
 
     # # Dropping the test set samples from the whole training set.
-    # LSST_indices = list(lsst_sample.index.values)
-    # rand_indices = list(random_sample.index.values)
-    # all_indices = list(set(LSST_indices + rand_indices))
-    # orig_size = thex_dataset.shape[0]
-    # thex_dataset.drop(index=all_indices, inplace=True)
-    # new_size = thex_dataset.shape[0]
-    # print("Whole test set goes from size " + str(orig_size) + " to size " + str(new_size))
+    if USING_FOLDS:
+        LSST_indices = list(lsst_sample.index.values)
+        rand_indices = list(random_sample.index.values)
+        all_indices = list(set(LSST_indices + rand_indices))
+        orig_size = thex_dataset.shape[0]
+        thex_dataset.drop(index=all_indices, inplace=True)
+        new_size = thex_dataset.shape[0]
+        print("\n\nDROPPING TEST DATA\nWhole test set goes from size " +
+              str(orig_size) + " to size " + str(new_size))
 
     lsst_sample.reset_index(drop=True, inplace=True)
     random_sample.reset_index(drop=True, inplace=True)
@@ -268,7 +272,7 @@ def get_test_results(model, output_dir, iterations=100):
     whole_test_set = thex_dataset.copy(True)
     for i in range(model.num_runs):
         # Resample testing sets each run
-        print("\n\nIteration " + str(i))
+        print("\n\nIteration " + str(i + 1) + "/" + str(iterations))
         print("whole test set size " + str(whole_test_set.shape[0]))
         X_lsst, y_lsst, X_orig, y_orig, whole_test_set = get_test_sets(
             whole_test_set,
@@ -299,7 +303,7 @@ def get_test_results(model, output_dir, iterations=100):
     # Visualize performance of randomly sampled data
     plot_performance(model, y_orig, output_dir + "/orig_test", orig_results)
 
-    plot_performance_together(model, y_lsst, LSST_results, orig_results)
+    plot_performance_together(model, y_lsst, LSST_results, orig_results, output_dir)
 
 
 def main():
