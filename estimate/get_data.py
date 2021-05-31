@@ -54,48 +54,20 @@ def get_thex_z_data(class_name):
     return thex_AF_Z, thex_gw2_Z
 
 
-# keys in lsst-sims.pk are:
-# obj_id:                         light curve id
-# true_z, photo_z:                transient redshift and host photo-z
-
-# These columns are calculated for each band (* = u, g, r, i, z, y)
-
-# *_first_mjd:                    epoch of initial detection ('first epoch')
-# *_first_snr:                    first-epoch SNR
-# *_min_snr, *_max_snr:           minimal and maximal SNR of the light curve
-# *_first_mag, *_first_mag_err:   first-epoch magnitude and error
-# *_min_mag, *_min_mag_err:       faintest magnitude and error
-# *_max_mag, *_max_mag_err:       peak or brighest magnitude and error
-# *_first_flux, *_first_flux_err: first-epoch physical flux and error
-# *_min_flux, *_min_flux_err:     minimal flux (matching faintest magnitude)
-# *_max_flux, *_max_flux_err:     maximal flux (matching peak magnitude)
-
 def get_lsst_data():
     """
     Pull down LSST data
+    """ 
+    with open(DATA_DIR + 'LSST_data.pickle', 'rb') as f:
+        return pickle.load(f) 
+
+
+def get_lsst_class_Zs(class_name,  lsst_df):
     """
-    local = os.path.dirname(os.path.abspath(__file__)) + "/.."
-    with open(local + '/data/lsst-sims.pk', 'rb') as f:
-        data = pickle.load(f)
-    return data
-
-
-def get_lsst_class_data(class_name, feature_name):
+    Filter LSST data to only those samples with this class name. Return Zs for this class.
     """
-    Filter LSST data to only those samples with this class name, and valid values for feature name. Return as Pandas DataFrame with first column as feature values and second column as z
-    """
-    data = get_lsst_data()
-    lsst_class_data = data[class_name]
-    feature_data = lsst_class_data[feature_name]
-    indices = []
-    for index, f in enumerate(feature_data):
-        if ~np.isnan(f):
-            indices.append(index)
+    class_ids_names = {'Ia': 90, 'II': 42, 'Ibc': 62, 'Ia-91bg': 67, 'TDE': 15}
 
-    valid_mags = np.take(lsst_class_data[feature_name], indices)
-    valid_Z = np.take(lsst_class_data['true_z'], indices)
+    targ_id = class_ids_names[class_name]
+    return lsst_df.loc[lsst_df['true_target'] == targ_id]['true_z'].values
 
-    df = pd.DataFrame(valid_mags, columns=[feature_name])
-    df['true_z'] = valid_Z.tolist()
-
-    return df

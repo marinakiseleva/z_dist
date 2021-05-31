@@ -2,7 +2,8 @@
 # coding: utf-8
 
 """
-Compare z dists of LSST data and THEx data for the 4 classes for which we have data for both (Ia, II, TDE, Ia-91bg)
+Compare z dists of LSST data and THEx data for the 5 classes 
+for which we have data for both (Ia, II, Ibc, TDE, Ia-91bg)
 """
 
 import os
@@ -51,11 +52,11 @@ def main(argv):
     Plots redshift distribution of LSST data (from PLASTICC) vs THEx data, after initializing model, so it is only valid data. And we only use valid r-mag data of LSST.
     """
     # Only features to choose from are g, r, i, z, y
-    lsst_feature_name = "r_first_mag"
+    lsst_feature_name = "tflux_r"
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
-            'redshift']
+            'redshift', 'is_identified']
     if path.exists('../data/zdata.pickle'):
         with open('../data/zdata.pickle', 'rb') as handle:
             data = pickle.load(handle)
@@ -64,27 +65,29 @@ def main(argv):
             return 1
     labels = ["Unspecified Ia", "Unspecified II", "Ia-91bg",
               "TDE", "Ib", "Ic", "Ib/c", "Unspecified Ib",  "IIb"]
-    model = MultiModel(cols=cols,
-                       class_labels=labels,
+    model = MultiModel(cols=cols, 
                        transform_features=False,
                        min_class_size=40,
                        data_file=CUR_DATA_PATH,
-                       lsst_test=True
+                       lsst_test=True,
+                       identified_only= True
                        )
 
     data = {}
+    lsst_df = get_lsst_data()
     for class_name in model.class_labels:
         class_indices = []
         for index, row in model.y.iterrows():
             if class_name in row['transient_type']:
                 class_indices.append(index)
         thex_Z = model.X.iloc[class_indices]['redshift'].values
-        LSST_Z = get_lsst_class_data(class_name=class_mapping[class_name],
-                                     feature_name=lsst_feature_name)[LSST_Z_COL].values
+        LSST_Z = get_lsst_class_Zs(class_name=class_mapping[class_name],  
+                                    lsst_df=lsst_df)
         data[class_name] = {"THEx": thex_Z,
                             "LSST_orig": LSST_Z}
+    
     # Save data
-    with open('../data/zdata.pickle', 'wb') as handle:
+    with open(DATA_DIR+'zdata.pickle', 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     init_plot_settings()

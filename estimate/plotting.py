@@ -91,7 +91,7 @@ def plot_Z_ranges_together(data, file_title):
 
     ax[0][0].legend(fontsize=16, loc="upper left", labelspacing=.2, handlelength=1)
     plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig("../figures/analysis/" + file_title)
+    plt.savefig(ROOT_DIR+"/output/" + file_title)
 
 
 def plot_Z_ranges(title, data, file_title):
