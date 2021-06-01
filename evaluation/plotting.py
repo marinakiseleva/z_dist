@@ -4,11 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib as mpl
-from estimate.get_data import *
-from estimate.constants import *
 
 from thex_data.data_consts import *
-from mainmodel.helper_compute import *
+from mainmodel.helper_plotting import *
+
+from estimate.get_data import *
+from estimate.constants import *
 
 
 def init_plot_settings():
@@ -57,13 +58,10 @@ def get_model_mets(model, results):
     """
     n = len(model.class_labels)
 
-    N = model.num_runs
     pc_per_trial = model.get_pc_per_trial(results)
-    ps, cs = model.get_avg_pc(pc_per_trial, N)
+    ps, cs  = model.get_pc_performance(pc_per_trial) 
+    p_intvls, c_intvls = compute_confintvls(pc_per_trial, model.class_labels, False)
 
-    p_intvls, c_intvls = compute_confintvls(pc_per_trial, model.class_labels)
-
-    ps, cs = model.get_avg_pc(pc_per_trial, N)
     return ps, cs, p_intvls, c_intvls
 
 
@@ -153,13 +151,17 @@ def plot_performance_together(model, test_y, LSST_results, orig_results, output_
     """
     L_ps, L_cs, L_ps_ci, L_cs_ci = get_model_mets(model, LSST_results)
     r_ps, r_cs, r_ps_ci, r_cs_ci = get_model_mets(model, orig_results)
-    print("original model class coutns " + str(model.class_counts))
-    model.class_counts = {"Unspecified Ia": 100, "Unspecified II": 100}
-    c_baselines, p_baselines = compute_baselines(
-        model.class_counts, model.class_labels, test_y, len(model.class_labels), None)
 
-    mpl.rcParams['font.serif'] = ['times', 'times new roman']
-    mpl.rcParams['font.family'] = 'serif'
+    model.class_counts = {"Unspecified Ia": 100, "Unspecified II": 100}
+
+    c_baselines, p_baselines = compute_baselines(class_counts=model.class_counts, 
+                                    class_labels=model.class_labels, 
+                                    N=model.get_num_classes(), 
+                                    balanced_purity=model.balanced_purity,
+                                    class_priors=model.class_priors)
+
+    # init_plot_settings()
+
     fig, ax = plt.subplots(figsize=(4, 1.5),
                            nrows=1, ncols=2,
                            dpi=150,
