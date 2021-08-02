@@ -152,15 +152,11 @@ def plot_performance_together(model, test_y, LSST_results, orig_results, output_
     L_ps, L_cs, L_ps_ci, L_cs_ci = get_model_mets(model, LSST_results)
     r_ps, r_cs, r_ps_ci, r_cs_ci = get_model_mets(model, orig_results)
 
-    model.class_counts = {"Unspecified Ia": 100, "Unspecified II": 100}
-
     c_baselines, p_baselines = compute_baselines(class_counts=model.class_counts, 
                                     class_labels=model.class_labels, 
                                     N=model.get_num_classes(), 
                                     balanced_purity=model.balanced_purity,
                                     class_priors=model.class_priors)
-
-    # init_plot_settings()
 
     fig, ax = plt.subplots(figsize=(4, 1.5),
                            nrows=1, ncols=2,
