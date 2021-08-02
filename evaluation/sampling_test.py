@@ -104,12 +104,12 @@ def get_test_sets(thex_dataset, output_dir, index):
     lsst_df = get_lsst_data()
     Ia_sampled, Ia_rand_sample, Ia_LSST_Z = get_THEx_sampled_data(lsst_df=lsst_df,
                                                                   class_name="Ia",
-                                                                  num_samples=145,
+                                                                  num_samples=140,
                                                                   thex_dataset=thex_dataset,
                                                                   i=index)
     II_sampled, II_rand_sample, II_LSST_Z = get_THEx_sampled_data(lsst_df=lsst_df,
                                                                   class_name="II",
-                                                                  num_samples=129,
+                                                                  num_samples=140,
                                                                   thex_dataset=thex_dataset,
                                                                   i=index)
     plot_sample_dists_together(Ia_sampled,
@@ -161,12 +161,12 @@ def plot_sample_dist(ax, rand_sample, lsst_sample, lsst_orig, class_name):
                 alpha=0.8,
                 color=LSST_COLOR)
 
-    plot_step(data=rand_sample['redshift'].values,
+    plot_step(data=rand_sample[Z_FEAT].values,
               bins=Z_bins,
               axis=ax,
               label="THEx test set",
               color=THEX_COLOR)
-    plot_step(data=lsst_sample['redshift'].values,
+    plot_step(data=lsst_sample[Z_FEAT].values,
               bins=Z_bins,
               axis=ax,
               label="LSST-like test set",
@@ -219,16 +219,16 @@ def get_THEx_sampled_data(lsst_df, class_name, num_samples, thex_dataset,  i="")
     z_dist = hist / len(lsst_z_vals)  # proportion of total in each bin
 
     # Create LSST sample by sampling THEx data at LSST z rates
-    lsst_sample = []
+    lsst_sample = [] 
     for index, freq in enumerate(z_dist):
-        samples = num_samples * freq
+        samples = round(num_samples * freq) 
         min_feature = Z_bins[index]
         max_feature = Z_bins[index + 1]
         # Filter by redshift
-        f_df = thex_class_data[(thex_class_data['redshift'] >= min_feature) & (
-            thex_class_data['redshift'] <= max_feature)]
+        f_df = thex_class_data[(thex_class_data[Z_FEAT] >= min_feature) & (
+            thex_class_data[Z_FEAT] <= max_feature)]
         if f_df.shape[0] > samples:
-            f_df = f_df.sample(n=int(samples))
+            f_df = f_df.sample(n=samples)
             lsst_sample.append(f_df)
         else:
             lsst_sample.append(f_df)
@@ -236,7 +236,6 @@ def get_THEx_sampled_data(lsst_df, class_name, num_samples, thex_dataset,  i="")
 
     class_count = lsst_sample.shape[0]
     random_sample = thex_class_data.sample(class_count).reset_index(drop=True)
-
     return lsst_sample, random_sample, lsst_z_vals
 
 
@@ -314,13 +313,15 @@ def main():
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
-            'redshift', 'is_identified']
+            Z_FEAT]
+
+    codes= ["A1", "F1", "B1", "G1"]
     model = MultiModel(cols=cols,
                        class_labels=['Unspecified Ia', 'Unspecified II'],
                        transform_features=False,
+                       case_code = codes,
                        min_class_size=40,
                        data_file=CUR_DATA_PATH,
-                       identified_only= True
                        )
     model.dir = output_dir
 

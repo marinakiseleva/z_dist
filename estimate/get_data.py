@@ -48,8 +48,8 @@ def get_thex_z_data(class_name):
     df_AF = get_data(name='all_features')
     df_g_W2 = get_data(name='g_W2')
 
-    thex_AF_Z = get_thex_class_data(class_name, df_AF)['redshift'].values
-    thex_gw2_Z = get_thex_class_data(class_name, df_g_W2)['redshift'].values
+    thex_AF_Z = get_thex_class_data(class_name, df_AF)[Z_FEAT].values
+    thex_gw2_Z = get_thex_class_data(class_name, df_g_W2)[Z_FEAT].values
 
     return thex_AF_Z, thex_gw2_Z
 

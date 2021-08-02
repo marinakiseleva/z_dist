@@ -56,7 +56,7 @@ def main(argv):
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
-            'redshift', 'is_identified']
+            Z_FEAT, 'is_identified']
     if path.exists('../data/zdata.pickle'):
         with open('../data/zdata.pickle', 'rb') as handle:
             data = pickle.load(handle)
@@ -80,7 +80,7 @@ def main(argv):
         for index, row in model.y.iterrows():
             if class_name in row['transient_type']:
                 class_indices.append(index)
-        thex_Z = model.X.iloc[class_indices]['redshift'].values
+        thex_Z = model.X.iloc[class_indices][Z_FEAT].values
         LSST_Z = get_lsst_class_Zs(class_name=class_mapping[class_name],  
                                     lsst_df=lsst_df)
         data[class_name] = {"THEx": thex_Z,

@@ -83,7 +83,7 @@ def fit_and_plot(axis, X, y, data_type, output_dir, perplexity=30.0, early_exagg
 
 def main():
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
-            "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag', 'redshift']
+            "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag', Z_FEAT]
 
     if path.exists('../data/modelsave.pickle'):
         with open('../data/modelsave.pickle', 'rb') as handle:
@@ -108,10 +108,10 @@ def main():
                                                    num_samples=300)
 
     # Drop redshift from X's
-    if 'redshift' in list(lsst_X):
+    if Z_FEAT in list(lsst_X):
         print("\n\n Dropping redshift\n")
-        lsst_X = lsst_X.drop(labels=['redshift'], axis=1)
-        rand_X = rand_X.drop(labels=['redshift'], axis=1)
+        lsst_X = lsst_X.drop(labels=[Z_FEAT], axis=1)
+        rand_X = rand_X.drop(labels=[Z_FEAT], axis=1)
 
     #################
     # Set up training set
