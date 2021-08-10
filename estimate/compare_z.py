@@ -56,19 +56,20 @@ def main(argv):
 
     cols = ["g_mag", "r_mag", "i_mag", "z_mag", "y_mag",
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
-            Z_FEAT, 'is_identified']
-    if path.exists('../data/zdata.pickle'):
-        with open('../data/zdata.pickle', 'rb') as handle:
-            data = pickle.load(handle)
-            init_plot_settings()
-            plot_Z_ranges_together(data, "z_compare_full.pdf")
-            return 1
+            Z_FEAT]
+    # if path.exists('../data/zdata.pickle'):
+    #     with open('../data/zdata.pickle', 'rb') as handle:
+    #         data = pickle.load(handle)
+    #         init_plot_settings()
+    #         plot_Z_ranges_together(data, "z_compare_full.pdf")
+    #         return 1
     labels = ["Unspecified Ia", "Unspecified II", "Ia-91bg",
               "TDE", "Ib", "Ic", "Ib/c", "Unspecified Ib",  "IIb"]
     model = MultiModel(cols=cols, 
                        transform_features=False,
                        min_class_size=40,
                        data_file=CUR_DATA_PATH,
+                       case_code = ["A1", "F1", "B1", "G1"],
                        lsst_test=True,
                        identified_only= True
                        )
