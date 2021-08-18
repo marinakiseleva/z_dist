@@ -32,18 +32,18 @@ def remove_data(alt_X, orig_X, orig_y):
 
     # Reorder columns so they are consistent
     alt_X = alt_X[ordered_mags].astype('float32')
-    # combined_orig = combined_orig[ordered_mags].astype('float32') 
+    # combined_orig = combined_orig[ordered_mags].astype('float32')
 
     # Keep rows that only exist in left
-    merged = pd.merge(left=combined_orig, 
-                        right=alt_X, 
-                        indicator=True, 
-                        how='outer',
-                        on=ordered_mags)
+    merged = pd.merge(left=combined_orig,
+                      right=alt_X,
+                      indicator=True,
+                      how='outer',
+                      on=ordered_mags)
     merged = merged.loc[merged['_merge'] == 'left_only']
     merged = merged.drop('_merge', axis=1).reset_index(drop=True)
 
-    new_y = merged[[TARGET_LABEL]] 
+    new_y = merged[[TARGET_LABEL]]
     new_X = merged.drop([TARGET_LABEL], axis=1)
     return new_X, new_y
 
@@ -56,8 +56,8 @@ def get_training_data(lsst_test_X, THEx_test_X, all_X, all_y):
     :param all_X: All X data in initialized model
     :param all_y: All y data in initialized model
     """
-    X_train = all_X.copy()
-    y_train = all_y.copy()
+    X_train = all_X.copy(True)
+    y_train = all_y.copy(True)
 
     # Drop LSST testing data from training
     reduced_X, reduced_y = remove_data(alt_X=lsst_test_X,
@@ -65,10 +65,10 @@ def get_training_data(lsst_test_X, THEx_test_X, all_X, all_y):
                                        orig_y=y_train)
     # Drop THEx testing data from training
     X_train_reduced, y_train_reduced = remove_data(alt_X=THEx_test_X,
-                               orig_X=reduced_X,
-                               orig_y=reduced_y)
-    X_train_reduced=X_train_reduced.reset_index(drop=True)
-    y_train_reduced=y_train_reduced.reset_index(drop=True)
+                                                   orig_X=reduced_X,
+                                                   orig_y=reduced_y)
+    X_train_reduced = X_train_reduced.reset_index(drop=True)
+    y_train_reduced = y_train_reduced.reset_index(drop=True)
     return X_train_reduced, y_train_reduced
 
 
@@ -103,7 +103,7 @@ def get_test_sets(thex_dataset, output_dir, index):
 
     lsst_df = get_lsst_data()
     Ia_sampled, Ia_rand_sample, Ia_LSST_Z = get_THEx_sampled_data(lsst_df=lsst_df,
-                                                                  class_name="Ia",
+                                                                  class_name="Unspecified Ia",
                                                                   num_samples=140,
                                                                   thex_dataset=thex_dataset,
                                                                   i=index)
@@ -209,8 +209,10 @@ def get_THEx_sampled_data(lsst_df, class_name, num_samples, thex_dataset,  i="")
     :param thex_dataset: DataFrame of THEx data, X and y
     :param i: iteration 
     """
-    thex_class_data = get_thex_class_data("Unspecified " + class_name, thex_dataset)
-    lsst_z_vals = get_lsst_class_Zs(class_name=class_name,  
+    print("\nSampling Class: " + class_name)
+    thex_class_data = get_thex_class_data(class_name, thex_dataset)
+    lsst_class_name = class_name.replace("Unspecified ", "")
+    lsst_z_vals = get_lsst_class_Zs(class_name=lsst_class_name,
                                     lsst_df=lsst_df)
 
     # Get hist of redshift values, and frequencies
@@ -219,15 +221,17 @@ def get_THEx_sampled_data(lsst_df, class_name, num_samples, thex_dataset,  i="")
     z_dist = hist / len(lsst_z_vals)  # proportion of total in each bin
 
     # Create LSST sample by sampling THEx data at LSST z rates
-    lsst_sample = [] 
+    lsst_sample = []
     for index, freq in enumerate(z_dist):
-        samples = round(num_samples * freq) 
+        samples = int(round(num_samples * freq))
         min_feature = Z_bins[index]
         max_feature = Z_bins[index + 1]
         # Filter by redshift
         f_df = thex_class_data[(thex_class_data[Z_FEAT] >= min_feature) & (
             thex_class_data[Z_FEAT] <= max_feature)]
-        if f_df.shape[0] > samples:
+        if samples == 0:
+            continue
+        elif f_df.shape[0] > samples:
             f_df = f_df.sample(n=samples)
             lsst_sample.append(f_df)
         else:
@@ -263,7 +267,7 @@ def get_test_results(model, output_dir, iterations=100):
     orig_results = []
 
     for i in range(model.num_runs):
-        print("\n\nIteration " + str(i+1)+"/"+str(model.num_runs))
+        print("\n\nIteration " + str(i + 1) + "/" + str(model.num_runs))
         # Resample testing sets each run
         X_lsst, y_lsst, X_orig, y_orig = get_test_sets(
             thex_dataset, output_dir, i)
@@ -277,10 +281,10 @@ def get_test_results(model, output_dir, iterations=100):
         X_train = X_train[ordered_mags]
 
         print("\nTraining set size: " + str(X_train.shape[0]))
-        print("Ia test count, LSST: " + str(get_cc(y_lsst, "Unspecified Ia")) + 
-                ", THEx: " + str(get_cc(y_orig, "Unspecified Ia")))
-        print("II test count, LSST: "  + str(get_cc(y_lsst, "Unspecified II"))
-                + ", THEx: " + str(get_cc(y_orig, "Unspecified II")))
+        print("Ia test count, LSST: " + str(get_cc(y_lsst, "Unspecified Ia")) +
+              ", THEx: " + str(get_cc(y_orig, "Unspecified Ia")))
+        print("II test count, LSST: " + str(get_cc(y_lsst, "Unspecified II"))
+              + ", THEx: " + str(get_cc(y_orig, "Unspecified II")))
 
         # Train model on sampled set
         model.train_model(X_train, y_train)
@@ -315,11 +319,11 @@ def main():
             "W1_mag", "W2_mag", "H_mag", "K_mag", 'J_mag',
             Z_FEAT]
 
-    codes= ["A1", "F1", "B1", "G1"]
+    codes = ["A1", "F1", "B1", "G1"]
     model = MultiModel(cols=cols,
-                       class_labels=['Unspecified Ia', 'Unspecified II'],
+                       class_labels=['Unspecified Ia', 'II'],
                        transform_features=False,
-                       case_code = codes,
+                       case_code=codes,
                        min_class_size=40,
                        data_file=CUR_DATA_PATH,
                        )

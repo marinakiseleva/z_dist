@@ -76,8 +76,9 @@ def plot_Z_ranges_together(data, file_title):
     plot_data(0, 1, data["Ia-91bg"], "Ia-91bg")
     plot_data(0, 2, data["Ibc"], "Ibc")
 
-    plot_data(1, 0, data["Unspecified II"], "II\n(unspec.)")
-    plot_data(1, 1, data["TDE"], "TDE")
+    plot_data(1, 0, data["II"], "II")
+    plot_data(1, 1, data["SLSN-I"], "SLSN-I")
+    plot_data(1, 2, data["TDE"], "TDE")
 
     labelsize = 18
     ax[0][0].set_ylabel("Density", fontsize=labelsize)
@@ -85,13 +86,13 @@ def plot_Z_ranges_together(data, file_title):
     # ax[1][2].axis('off')
     ax[0][2].set_visible(True)
     # ax[1][2].set_axis_off()
-    f.delaxes(ax[1, 2])
+    # f.delaxes(ax[1, 2])
 
     ax[0][2].xaxis.set_tick_params(labelsize=14)
 
     ax[0][0].legend(fontsize=16, loc="upper left", labelspacing=.2, handlelength=1)
     plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig(ROOT_DIR+"/output/" + file_title)
+    plt.savefig(ROOT_DIR + "/output/" + file_title)
 
 
 def plot_Z_ranges(title, data, file_title):

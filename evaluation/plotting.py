@@ -21,17 +21,19 @@ def init_plot_settings():
     mpl.rcParams['font.family'] = 'serif'
 
 
-def plot_performance(model, testdata_y, output_dir, results):
+def plot_performance_c(model, testdata_y, output_dir, results):
     """
     Visualize all performance metrics for model.
     """
+    def get_class_count(df, cname):
+        count = 0
+        for i, row in df.iterrows():
+            if cname in row[TARGET_LABEL]:
+                count += 1
+        return count
     # Reset class counts and y to be that of the test set, so baselines are accurate
-    a = testdata_y.groupby('transient_type').size()[
-        'I, Ia, _ROOT, _SN, _W_UVOPT, Unspecified Ia']
-    b = testdata_y.groupby('transient_type').size()[
-        'CC, II, _ROOT, _SN, _W_UVOPT, Unspecified II']
-    model.class_counts = {"Unspecified Ia": a,
-                          "Unspecified II": b}
+    for c in model.class_labels:
+        model.class_counts[c] = get_class_count(testdata_y, c)
 
     model.results = results
     model.y = testdata_y
@@ -59,7 +61,7 @@ def get_model_mets(model, results):
     n = len(model.class_labels)
 
     pc_per_trial = model.get_pc_per_trial(results)
-    ps, cs  = model.get_pc_performance(pc_per_trial) 
+    ps, cs = model.get_pc_performance(pc_per_trial)
     p_intvls, c_intvls = compute_confintvls(pc_per_trial, model.class_labels, False)
 
     return ps, cs, p_intvls, c_intvls
@@ -76,7 +78,7 @@ def plot_class_met(ax, indices, vals, cis, baselines, label, color):
     """
 
     # Convert all dicts to same order of lists
-    classes = ['Unspecified Ia', 'Unspecified II']
+    classes = ['Unspecified Ia', 'II']
     val_list = []
     cis_list = []
     baselines_list = []
@@ -152,11 +154,11 @@ def plot_performance_together(model, test_y, LSST_results, orig_results, output_
     L_ps, L_cs, L_ps_ci, L_cs_ci = get_model_mets(model, LSST_results)
     r_ps, r_cs, r_ps_ci, r_cs_ci = get_model_mets(model, orig_results)
 
-    c_baselines, p_baselines = compute_baselines(class_counts=model.class_counts, 
-                                    class_labels=model.class_labels, 
-                                    N=model.get_num_classes(), 
-                                    balanced_purity=model.balanced_purity,
-                                    class_priors=model.class_priors)
+    c_baselines, p_baselines = compute_baselines(class_counts=model.class_counts,
+                                                 class_labels=model.class_labels,
+                                                 N=model.get_num_classes(),
+                                                 balanced_purity=model.balanced_purity,
+                                                 class_priors=model.class_priors)
 
     fig, ax = plt.subplots(figsize=(4, 1.5),
                            nrows=1, ncols=2,

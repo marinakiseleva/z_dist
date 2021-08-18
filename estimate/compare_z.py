@@ -39,14 +39,6 @@ def get_filt_LSST_Z(min_feature, max_feature, data):
     return f_df[LSST_Z_COL].values
 
 
-# Map from thex names to LSST names
-class_mapping = {"Unspecified Ia": "Ia",
-                 "Unspecified II": "II",
-                 "TDE": "TDE",
-                 "Ia-91bg": "Ia-91bg",
-                 "Ibc": "Ibc"}
-
-
 def main(argv):
     """
     Plots redshift distribution of LSST data (from PLASTICC) vs THEx data, after initializing model, so it is only valid data. And we only use valid r-mag data of LSST.
@@ -63,15 +55,13 @@ def main(argv):
     #         init_plot_settings()
     #         plot_Z_ranges_together(data, "z_compare_full.pdf")
     #         return 1
-    labels = ["Unspecified Ia", "Unspecified II", "Ia-91bg",
-              "TDE", "Ib", "Ic", "Ib/c", "Unspecified Ib",  "IIb"]
-    model = MultiModel(cols=cols, 
+    model = MultiModel(cols=cols,
                        transform_features=False,
-                       min_class_size=40,
+                       min_class_size=3,
                        data_file=CUR_DATA_PATH,
-                       case_code = ["A1", "F1", "B1", "G1"],
+                       case_code=["A1", "F1", "B1", "G1"],
                        lsst_test=True,
-                       identified_only= True
+                       identified_only=True
                        )
 
     data = {}
@@ -82,13 +72,13 @@ def main(argv):
             if class_name in row['transient_type']:
                 class_indices.append(index)
         thex_Z = model.X.iloc[class_indices][Z_FEAT].values
-        LSST_Z = get_lsst_class_Zs(class_name=class_mapping[class_name],  
-                                    lsst_df=lsst_df)
+        LSST_Z = get_lsst_class_Zs(class_name=class_mapping[class_name],
+                                   lsst_df=lsst_df)
         data[class_name] = {"THEx": thex_Z,
                             "LSST_orig": LSST_Z}
-    
+
     # Save data
-    with open(DATA_DIR+'zdata.pickle', 'wb') as handle:
+    with open(DATA_DIR + 'zdata.pickle', 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     init_plot_settings()

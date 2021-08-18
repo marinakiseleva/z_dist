@@ -57,17 +57,14 @@ def get_thex_z_data(class_name):
 def get_lsst_data():
     """
     Pull down LSST data
-    """ 
+    """
     with open(DATA_DIR + 'LSST_data.pickle', 'rb') as f:
-        return pickle.load(f) 
+        return pickle.load(f)
 
 
 def get_lsst_class_Zs(class_name,  lsst_df):
     """
     Filter LSST data to only those samples with this class name. Return Zs for this class.
     """
-    class_ids_names = {'Ia': 90, 'II': 42, 'Ibc': 62, 'Ia-91bg': 67, 'TDE': 15}
-
-    targ_id = class_ids_names[class_name]
+    targ_id = CLASS_ID_NAMES[class_name]
     return lsst_df.loc[lsst_df['true_target'] == targ_id]['true_z'].values
-
