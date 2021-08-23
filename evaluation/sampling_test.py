@@ -60,11 +60,11 @@ def get_training_data(lsst_test_X, THEx_test_X, all_X, all_y):
     y_train = all_y.copy(True)
 
     # Drop LSST testing data from training
-    reduced_X, reduced_y = remove_data(alt_X=lsst_test_X,
+    reduced_X, reduced_y = remove_data(alt_X=lsst_test_X.copy(True),
                                        orig_X=X_train,
                                        orig_y=y_train)
     # Drop THEx testing data from training
-    X_train_reduced, y_train_reduced = remove_data(alt_X=THEx_test_X,
+    X_train_reduced, y_train_reduced = remove_data(alt_X=THEx_test_X.copy(True),
                                                    orig_X=reduced_X,
                                                    orig_y=reduced_y)
     X_train_reduced = X_train_reduced.reset_index(drop=True)
@@ -104,14 +104,19 @@ def get_test_sets(thex_dataset, output_dir, index):
     lsst_df = get_lsst_data()
     Ia_sampled, Ia_rand_sample, Ia_LSST_Z = get_THEx_sampled_data(lsst_df=lsst_df,
                                                                   class_name="Unspecified Ia",
-                                                                  num_samples=140,
-                                                                  thex_dataset=thex_dataset,
-                                                                  i=index)
+                                                                  num_samples=110,
+                                                                  thex_dataset=thex_dataset)
     II_sampled, II_rand_sample, II_LSST_Z = get_THEx_sampled_data(lsst_df=lsst_df,
                                                                   class_name="II",
-                                                                  num_samples=140,
-                                                                  thex_dataset=thex_dataset,
-                                                                  i=index)
+                                                                  num_samples=110,
+                                                                  thex_dataset=thex_dataset)
+
+    Iacount = Ia_sampled.shape[0]
+    IIcount = II_sampled.shape[0]
+    if Iacount < IIcount:
+        II_sampled = II_sampled.sample(Iacount).reset_index(drop=True)
+        II_rand_sample = II_rand_sample.sample(Iacount).reset_index(drop=True)
+
     plot_sample_dists_together(Ia_sampled,
                                Ia_rand_sample,
                                Ia_LSST_Z,
@@ -127,87 +132,10 @@ def get_test_sets(thex_dataset, output_dir, index):
     return lsst_sampled_X, lsst_sampled_y, orig_sampled_X, orig_sampled_y
 
 
-def plot_sample_dist(ax, rand_sample, lsst_sample, lsst_orig, class_name):
-
-    THEX_COLOR = "#ffa31a"
-    LSST_COLOR = "#80ccff"
-    LSST_SAMPLE_COLOR = "#24248f"
-
-    def plot_step(data, bins, axis, label, color):
-        """
-        Get hist data and plot as step graph, no inner lines
-        """
-        # bins values in bin are (for left, right), left <= x < right
-        vals, bins = np.histogram(data, bins=bins, density=True)
-        a = np.array([0])
-        bin_indices = np.linspace(min(bins), max(bins), len(bins))
-        bin_indices = bin_indices[1:]
-        xnew = np.concatenate((a, bin_indices), axis=0)
-        ynew = np.concatenate((a, vals), axis=0)
-
-        axis.step(x=xnew,
-                  y=ynew,
-                  label=label,
-                  linewidth=2,
-                  color=color)
-
-    Z_bins = np.linspace(0, 1, 50)
-
-    a = ax.hist(lsst_orig,
-                density=True,
-                bins=Z_bins,
-                label="LSST",
-                fill=True,
-                alpha=0.8,
-                color=LSST_COLOR)
-
-    plot_step(data=rand_sample[Z_FEAT].values,
-              bins=Z_bins,
-              axis=ax,
-              label="THEx test set",
-              color=THEX_COLOR)
-    plot_step(data=lsst_sample[Z_FEAT].values,
-              bins=Z_bins,
-              axis=ax,
-              label="LSST-like test set",
-              color=LSST_SAMPLE_COLOR)
-
-    ax.set_title(class_name, fontsize=22, y=0.8, x=0.75)
-
-
-def plot_sample_dists_together(Ia_sampled, Ia_rand_sample, Ia_LSST_Z, II_sampled, II_rand_sample, II_LSST_Z, output_dir):
-    """
-    Plot LSST orig vs THEx sample vs LSST sample for each class on shared fig.
-    """
-    # Plot LSST data, sampled LSST, and random sample
-    rc('font', family="Times New Roman")
-    f, ax = plt.subplots(nrows=2,
-                         ncols=1,
-                         sharex=True, sharey=True,
-                         figsize=(5, 7),
-                         dpi=140)
-
-    plot_sample_dist(ax[0], Ia_rand_sample, Ia_sampled, Ia_LSST_Z, "Ia (unspec.)")
-    plot_sample_dist(ax[1], II_rand_sample, II_sampled, II_LSST_Z, "II (unspec.)")
-
-    ax[0].legend(fontsize=14, loc="upper left",  labelspacing=.2, handlelength=1)
-
-    ax[0].yaxis.set_tick_params(labelsize=16)
-    ax[1].yaxis.set_tick_params(labelsize=16)
-    ax[1].xaxis.set_tick_params(labelsize=16)
-
-    ax[1].set_xlabel("Redshift", fontsize=20)
-    ax[0].set_ylabel("Density", fontsize=20)
-    ax[1].set_ylabel("Density", fontsize=20)
-    plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig(output_dir + "/samples.pdf", bbox_inches='tight')
-
-
-def get_THEx_sampled_data(lsst_df, class_name, num_samples, thex_dataset,  i=""):
+def get_THEx_sampled_data(lsst_df, class_name, num_samples, thex_dataset):
     """
     Create 2 sample test sets from THEx data, one randomly sampled from our data and the other sampled with LSST redshift dist
-    :param thex_dataset: DataFrame of THEx data, X and y
-    :param i: iteration 
+    :param thex_dataset: DataFrame of THEx data, X and y 
     """
     print("\nSampling Class: " + class_name)
     thex_class_data = get_thex_class_data(class_name, thex_dataset)
@@ -223,7 +151,8 @@ def get_THEx_sampled_data(lsst_df, class_name, num_samples, thex_dataset,  i="")
     # Create LSST sample by sampling THEx data at LSST z rates
     lsst_sample = []
     for index, freq in enumerate(z_dist):
-        samples = int(round(num_samples * freq))
+        samples = int(round(freq, 2) * num_samples)
+        # samples = int(num_samples * freq)
         min_feature = Z_bins[index]
         max_feature = Z_bins[index + 1]
         # Filter by redshift
@@ -235,11 +164,14 @@ def get_THEx_sampled_data(lsst_df, class_name, num_samples, thex_dataset,  i="")
             f_df = f_df.sample(n=samples)
             lsst_sample.append(f_df)
         else:
+            missing = samples - f_df.shape[0]
+            # print("Not enough data in range " + str(index) + " by " + str(missing))
             lsst_sample.append(f_df)
     lsst_sample = pd.concat(lsst_sample).reset_index(drop=True)
 
     class_count = lsst_sample.shape[0]
     random_sample = thex_class_data.sample(class_count).reset_index(drop=True)
+
     return lsst_sample, random_sample, lsst_z_vals
 
 
@@ -281,10 +213,9 @@ def get_test_results(model, output_dir, iterations=100):
         X_train = X_train[ordered_mags]
 
         print("\nTraining set size: " + str(X_train.shape[0]))
-        print("Ia test count, LSST: " + str(get_cc(y_lsst, "Unspecified Ia")) +
-              ", THEx: " + str(get_cc(y_orig, "Unspecified Ia")))
-        print("II test count, LSST: " + str(get_cc(y_lsst, "Unspecified II"))
-              + ", THEx: " + str(get_cc(y_orig, "Unspecified II")))
+        for c in model.class_labels:
+            print(c + " test count, LSST: " + str(get_cc(y_lsst, c)) +
+                  ", THEx: " + str(get_cc(y_orig, c)))
 
         # Train model on sampled set
         model.train_model(X_train, y_train)
